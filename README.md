@@ -6,18 +6,18 @@ chip and the **Westwood ADL** music driver — faithful enough to play *Dune II*
 DOS AdLib hardware did.
 
 It is a strict **function-by-function transcription** of two reference
-implementations (their source is *not* bundled here — see [References](#references)).
-The transcription was produced with [Claude Code](https://claude.com/claude-code),
+implementations (their source is *not* bundled here — see [References][1]).
+The transcription was produced with [Claude Code][2],
 Anthropic's agentic coding tool.
 
-| Component | Transcribed from | Upstream license |
-|---|---|---|
-| OPL3 chip core — `SwiftOPL3` | [Nuked-OPL3](https://github.com/nukeykt/Nuked-OPL3) by Nuke.YKT (`opl3.c`/`opl3.h`) | LGPL-2.1 |
-| Westwood ADL driver — `WestwoodADL` | [AdPlug](https://github.com/adplug/adplug) `src/adl.cpp` (`CadlPlayer`), a port of the [ScummVM/Kyra](https://github.com/scummvm/scummvm) AdLib driver | LGPL-2.1 |
+| Component                           | Transcribed from                                                                       | Upstream license |
+| ----------------------------------- | -------------------------------------------------------------------------------------- | ---------------- |
+| OPL3 chip core — `SwiftOPL3`        | [Nuked-OPL3][3] by Nuke.YKT (`opl3.c`/`opl3.h`)                                        | LGPL-2.1         |
+| Westwood ADL driver — `WestwoodADL` | [AdPlug][4] `src/adl.cpp` (`CadlPlayer`), a port of the [ScummVM/Kyra][5] AdLib driver | LGPL-2.1         |
 
 The transcription rule is absolute: **change nothing** — same branches, same
 fixed-point arithmetic, same table values, same order of operations. Behaviour
-is *verified against the originals, not re-derived* (see [Verification](#verification)).
+is *verified against the originals, not re-derived* (see [Verification][6]).
 
 ## Status — working & verified ✅
 
@@ -29,15 +29,6 @@ is *verified against the originals, not re-derived* (see [Verification](#verific
   `DUNE8.ADL` melody (1178 writes, index-for-index) through the full public API.
 - **End-to-end:** the `adlrender` tool renders real Dune II `.ADL` tracks to WAV.
 - 68 tests green; zero warnings (default and `-DOPL_TRACE` builds).
-
-## Is it really all Swift?
-
-The two shipped libraries and the `adlrender` example are **100% Swift,
-Foundation-only** — no C, C++, or Objective-C is compiled into or linked by the
-package. The only non-Swift code lives under `Scripts/` (one `.c` file and some
-`bash`/embedded C++) and is **build-time tooling only**: it compiles the cloned
-reference oracles to *generate the golden test fixtures*. It never ships in the
-library and is not required to build or use SwiftOPL3.
 
 ## Use
 
@@ -63,14 +54,14 @@ The OPL3 chip is usable standalone (drive it with raw register writes via
 
 ```sh
 swift build
-swift test          # 68 tests; fixtures are committed, so no setup needed
+swift test
 ```
 
 Render a track to a WAV (you supply the `.ADL`):
 
 ```sh
 swift build
-.build/debug/adlrender path/to/DUNE8.ADL 2 45 out.wav   # subsong 2, 45 seconds
+.build/debug/adlrender path/to/{file}.adl 2 45 out.wav
 ```
 
 ## Verification
@@ -104,7 +95,6 @@ Sources/adlrender/      example: .ADL → WAV renderer
 Tests/                  golden PCM + trace-equivalence + unit tests
 Documentation/          Plan, Architecture (Overview/OPL3/WestwoodADL/Logging/Testing), Formats/ADL
 Scripts/                reference fetch + golden-fixture generation (build-time tooling)
-References/             (gitignored) cloned reference sources — never part of the build
 ```
 
 `Documentation/` holds the design; `CurrentState.md` is the operational resume point.
@@ -123,9 +113,18 @@ their code is referenced here, never copied in:
 
 **LGPL-2.1-or-later.** SwiftOPL3 is a derivative work of Nuked-OPL3 (LGPL-2.1)
 and the AdPlug/ScummVM AdLib driver (LGPL-2.1); LGPL-2.1 is therefore the
-required and intended license. Full text in [`LICENSE`](LICENSE); attribution in
-[`NOTICE`](NOTICE). Per-file headers cite the upstream `file:line` they were
+required and intended license. Full text in [`LICENSE`][7]; attribution in
+[`NOTICE`][8]. Per-file headers cite the upstream `file:line` they were
 transcribed from.
 
 > Dune II `.ADL` music files are copyrighted game assets and are **not** included
 > in this repository. Bring your own to render or trace real tracks.
+
+[1]:	#references
+[2]:	https://claude.com/claude-code
+[3]:	https://github.com/nukeykt/Nuked-OPL3
+[4]:	https://github.com/adplug/adplug
+[5]:	https://github.com/scummvm/scummvm
+[6]:	#verification
+[7]:	LICENSE
+[8]:	NOTICE
