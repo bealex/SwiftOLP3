@@ -87,14 +87,14 @@ extension OPL3Chip {
         channel[c].fNum = (channel[c].fNum & 0x300) | UInt16(data)
         channel[c].ksv = (channel[c].block << 1)
                        | UInt8((channel[c].fNum >> (0x09 - UInt16(nts))) & 0x01)
-        envelopeUpdateKSL(channel[c].slotz[0])
-        envelopeUpdateKSL(channel[c].slotz[1])
+        envelopeUpdateKSL(channel[c].slotz.0)
+        envelopeUpdateKSL(channel[c].slotz.1)
         if newm != 0 && channel[c].chtype == OPL3Const.ch4op {
             let p = channel[c].pair
             channel[p].fNum = channel[c].fNum
             channel[p].ksv = channel[c].ksv
-            envelopeUpdateKSL(channel[p].slotz[0])
-            envelopeUpdateKSL(channel[p].slotz[1])
+            envelopeUpdateKSL(channel[p].slotz.0)
+            envelopeUpdateKSL(channel[p].slotz.1)
         }
     }
 
@@ -108,15 +108,15 @@ extension OPL3Chip {
         channel[c].block = (data >> 2) & 0x07
         channel[c].ksv = (channel[c].block << 1)
                        | UInt8((channel[c].fNum >> (0x09 - UInt16(nts))) & 0x01)
-        envelopeUpdateKSL(channel[c].slotz[0])
-        envelopeUpdateKSL(channel[c].slotz[1])
+        envelopeUpdateKSL(channel[c].slotz.0)
+        envelopeUpdateKSL(channel[c].slotz.1)
         if newm != 0 && channel[c].chtype == OPL3Const.ch4op {
             let p = channel[c].pair
             channel[p].fNum = channel[c].fNum
             channel[p].block = channel[c].block
             channel[p].ksv = channel[c].ksv
-            envelopeUpdateKSL(channel[p].slotz[0])
-            envelopeUpdateKSL(channel[p].slotz[1])
+            envelopeUpdateKSL(channel[p].slotz.0)
+            envelopeUpdateKSL(channel[p].slotz.1)
         }
     }
 
@@ -166,17 +166,17 @@ extension OPL3Chip {
         if newm != 0 {
             if channel[c].chtype == OPL3Const.ch4op {
                 let p = channel[c].pair
-                envelopeKeyOn(channel[c].slotz[0], OPL3Const.egkNorm)
-                envelopeKeyOn(channel[c].slotz[1], OPL3Const.egkNorm)
-                envelopeKeyOn(channel[p].slotz[0], OPL3Const.egkNorm)
-                envelopeKeyOn(channel[p].slotz[1], OPL3Const.egkNorm)
+                envelopeKeyOn(channel[c].slotz.0, OPL3Const.egkNorm)
+                envelopeKeyOn(channel[c].slotz.1, OPL3Const.egkNorm)
+                envelopeKeyOn(channel[p].slotz.0, OPL3Const.egkNorm)
+                envelopeKeyOn(channel[p].slotz.1, OPL3Const.egkNorm)
             } else if channel[c].chtype == OPL3Const.ch2op || channel[c].chtype == OPL3Const.chDrum {
-                envelopeKeyOn(channel[c].slotz[0], OPL3Const.egkNorm)
-                envelopeKeyOn(channel[c].slotz[1], OPL3Const.egkNorm)
+                envelopeKeyOn(channel[c].slotz.0, OPL3Const.egkNorm)
+                envelopeKeyOn(channel[c].slotz.1, OPL3Const.egkNorm)
             }
         } else {
-            envelopeKeyOn(channel[c].slotz[0], OPL3Const.egkNorm)
-            envelopeKeyOn(channel[c].slotz[1], OPL3Const.egkNorm)
+            envelopeKeyOn(channel[c].slotz.0, OPL3Const.egkNorm)
+            envelopeKeyOn(channel[c].slotz.1, OPL3Const.egkNorm)
         }
     }
 
@@ -185,17 +185,17 @@ extension OPL3Chip {
         if newm != 0 {
             if channel[c].chtype == OPL3Const.ch4op {
                 let p = channel[c].pair
-                envelopeKeyOff(channel[c].slotz[0], OPL3Const.egkNorm)
-                envelopeKeyOff(channel[c].slotz[1], OPL3Const.egkNorm)
-                envelopeKeyOff(channel[p].slotz[0], OPL3Const.egkNorm)
-                envelopeKeyOff(channel[p].slotz[1], OPL3Const.egkNorm)
+                envelopeKeyOff(channel[c].slotz.0, OPL3Const.egkNorm)
+                envelopeKeyOff(channel[c].slotz.1, OPL3Const.egkNorm)
+                envelopeKeyOff(channel[p].slotz.0, OPL3Const.egkNorm)
+                envelopeKeyOff(channel[p].slotz.1, OPL3Const.egkNorm)
             } else if channel[c].chtype == OPL3Const.ch2op || channel[c].chtype == OPL3Const.chDrum {
-                envelopeKeyOff(channel[c].slotz[0], OPL3Const.egkNorm)
-                envelopeKeyOff(channel[c].slotz[1], OPL3Const.egkNorm)
+                envelopeKeyOff(channel[c].slotz.0, OPL3Const.egkNorm)
+                envelopeKeyOff(channel[c].slotz.1, OPL3Const.egkNorm)
             }
         } else {
-            envelopeKeyOff(channel[c].slotz[0], OPL3Const.egkNorm)
-            envelopeKeyOff(channel[c].slotz[1], OPL3Const.egkNorm)
+            envelopeKeyOff(channel[c].slotz.0, OPL3Const.egkNorm)
+            envelopeKeyOff(channel[c].slotz.1, OPL3Const.egkNorm)
         }
     }
 
@@ -225,15 +225,15 @@ extension OPL3Chip {
         rhy = data & 0x3f
         if rhy & 0x20 != 0 {
             let c6 = 6, c7 = 7, c8 = 8
-            channel[c6].out = [ .slotOut(channel[c6].slotz[1]), .slotOut(channel[c6].slotz[1]), .zero, .zero ]
-            channel[c7].out = [
-                .slotOut(channel[c7].slotz[0]), .slotOut(channel[c7].slotz[0]),
-                .slotOut(channel[c7].slotz[1]), .slotOut(channel[c7].slotz[1]),
-            ]
-            channel[c8].out = [
-                .slotOut(channel[c8].slotz[0]), .slotOut(channel[c8].slotz[0]),
-                .slotOut(channel[c8].slotz[1]), .slotOut(channel[c8].slotz[1]),
-            ]
+            channel[c6].out = ( .slotOut(channel[c6].slotz.1), .slotOut(channel[c6].slotz.1), .zero, .zero )
+            channel[c7].out = (
+                .slotOut(channel[c7].slotz.0), .slotOut(channel[c7].slotz.0),
+                .slotOut(channel[c7].slotz.1), .slotOut(channel[c7].slotz.1)
+            )
+            channel[c8].out = (
+                .slotOut(channel[c8].slotz.0), .slotOut(channel[c8].slotz.0),
+                .slotOut(channel[c8].slotz.1), .slotOut(channel[c8].slotz.1)
+            )
             for chnum in 6 ..< 9 {
                 channel[chnum].chtype = OPL3Const.chDrum
             }
@@ -243,42 +243,42 @@ extension OPL3Chip {
             channelSetupAlg(c8)
             // hh
             if rhy & 0x01 != 0 {
-                envelopeKeyOn(channel[c7].slotz[0], OPL3Const.egkDrum)
+                envelopeKeyOn(channel[c7].slotz.0, OPL3Const.egkDrum)
             } else {
-                envelopeKeyOff(channel[c7].slotz[0], OPL3Const.egkDrum)
+                envelopeKeyOff(channel[c7].slotz.0, OPL3Const.egkDrum)
             }
             // tc
             if rhy & 0x02 != 0 {
-                envelopeKeyOn(channel[c8].slotz[1], OPL3Const.egkDrum)
+                envelopeKeyOn(channel[c8].slotz.1, OPL3Const.egkDrum)
             } else {
-                envelopeKeyOff(channel[c8].slotz[1], OPL3Const.egkDrum)
+                envelopeKeyOff(channel[c8].slotz.1, OPL3Const.egkDrum)
             }
             // tom
             if rhy & 0x04 != 0 {
-                envelopeKeyOn(channel[c8].slotz[0], OPL3Const.egkDrum)
+                envelopeKeyOn(channel[c8].slotz.0, OPL3Const.egkDrum)
             } else {
-                envelopeKeyOff(channel[c8].slotz[0], OPL3Const.egkDrum)
+                envelopeKeyOff(channel[c8].slotz.0, OPL3Const.egkDrum)
             }
             // sd
             if rhy & 0x08 != 0 {
-                envelopeKeyOn(channel[c7].slotz[1], OPL3Const.egkDrum)
+                envelopeKeyOn(channel[c7].slotz.1, OPL3Const.egkDrum)
             } else {
-                envelopeKeyOff(channel[c7].slotz[1], OPL3Const.egkDrum)
+                envelopeKeyOff(channel[c7].slotz.1, OPL3Const.egkDrum)
             }
             // bd
             if rhy & 0x10 != 0 {
-                envelopeKeyOn(channel[c6].slotz[0], OPL3Const.egkDrum)
-                envelopeKeyOn(channel[c6].slotz[1], OPL3Const.egkDrum)
+                envelopeKeyOn(channel[c6].slotz.0, OPL3Const.egkDrum)
+                envelopeKeyOn(channel[c6].slotz.1, OPL3Const.egkDrum)
             } else {
-                envelopeKeyOff(channel[c6].slotz[0], OPL3Const.egkDrum)
-                envelopeKeyOff(channel[c6].slotz[1], OPL3Const.egkDrum)
+                envelopeKeyOff(channel[c6].slotz.0, OPL3Const.egkDrum)
+                envelopeKeyOff(channel[c6].slotz.1, OPL3Const.egkDrum)
             }
         } else {
             for chnum in 6 ..< 9 {
                 channel[chnum].chtype = OPL3Const.ch2op
                 channelSetupAlg(chnum)
-                envelopeKeyOff(channel[chnum].slotz[0], OPL3Const.egkDrum)
-                envelopeKeyOff(channel[chnum].slotz[1], OPL3Const.egkDrum)
+                envelopeKeyOff(channel[chnum].slotz.0, OPL3Const.egkDrum)
+                envelopeKeyOff(channel[chnum].slotz.1, OPL3Const.egkDrum)
             }
         }
     }

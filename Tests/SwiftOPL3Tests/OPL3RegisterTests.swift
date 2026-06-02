@@ -149,8 +149,8 @@ struct OPL3RegisterTests {
         let chip = OPL3Chip()
         chip.write(0xBD, 0x20 | 0x10)         // rhythm + bass drum
         // BD = channel 6 both slots keyed with egk_drum.
-        let s0 = chip.channel[6].slotz[0]
-        let s1 = chip.channel[6].slotz[1]
+        let s0 = chip.channel[6].slotz.0
+        let s1 = chip.channel[6].slotz.1
         #expect(chip.slot[s0].key & OPL3Const.egkDrum != 0)
         #expect(chip.slot[s1].key & OPL3Const.egkDrum != 0)
     }

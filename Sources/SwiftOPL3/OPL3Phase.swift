@@ -93,10 +93,25 @@ extension OPL3Chip {
     }
 
     // opl3.c:690 OPL3_SlotGenerate
+    // The reference indexes `envelope_sin[reg_wf]`; we dispatch with a `switch`
+    // over the eight waveform functions (direct calls, no per-slot closure /
+    // existential indirection) — identical result, much cheaper in the hot loop.
     func slotGenerate(_ s: Int) {
         let modVal = sample(at: slot[s].mod)
         let phaseArg = UInt16(truncatingIfNeeded: Int(slot[s].pgPhaseOut) &+ Int(modVal))
-        slot[s].out = OPL3Waveforms.envelopeSin[Int(slot[s].regWf)](phaseArg, slot[s].egOut)
+        let envelope = slot[s].egOut
+        let out: Int16
+        switch slot[s].regWf {
+            case 0: out = OPL3Waveforms.envelopeCalcSin0(phaseArg, envelope)
+            case 1: out = OPL3Waveforms.envelopeCalcSin1(phaseArg, envelope)
+            case 2: out = OPL3Waveforms.envelopeCalcSin2(phaseArg, envelope)
+            case 3: out = OPL3Waveforms.envelopeCalcSin3(phaseArg, envelope)
+            case 4: out = OPL3Waveforms.envelopeCalcSin4(phaseArg, envelope)
+            case 5: out = OPL3Waveforms.envelopeCalcSin5(phaseArg, envelope)
+            case 6: out = OPL3Waveforms.envelopeCalcSin6(phaseArg, envelope)
+            default: out = OPL3Waveforms.envelopeCalcSin7(phaseArg, envelope)
+        }
+        slot[s].out = out
     }
 
     // opl3.c:695 OPL3_SlotCalcFB

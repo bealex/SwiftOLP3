@@ -16,3 +16,6 @@ xcuserdata/
 # Copyrighted game assets + traces derived from them — never committed.
 /Resources/
 Tests/WestwoodADLTests/Fixtures/DUNE*.trace
+
+# Instruments profiling bundles (large, machine-specific).
+/Traces/

@@ -51,6 +51,12 @@ let package = Package(
             name: "adlrender",
             dependencies: ["WestwoodADL", "SwiftOPL3"]
         ),
+        // CPU benchmark / Instruments Time Profiler target (no file I/O in the
+        // hot loop). `swift build -c release` then profile .build/release/oplbench.
+        .executableTarget(
+            name: "oplbench",
+            dependencies: ["WestwoodADL", "SwiftOPL3"]
+        ),
         .testTarget(
             name: "SwiftOPL3Tests",
             dependencies: ["SwiftOPL3"],

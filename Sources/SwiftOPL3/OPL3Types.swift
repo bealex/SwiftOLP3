@@ -73,9 +73,12 @@ struct Slot {
 
 /// Per-channel state. ≈ `opl3_channel` (opl3.h:85).
 struct Channel {
-    var slotz: [Int] = [ 0, 0 ]            // ≈ channel->slotz[2] (indices into chip.slot)
+    // Fixed tuples (not arrays) so `Channel` is a trivial value type with no
+    // heap storage / ARC — the hot loop touches `channel[c]` millions of times
+    // per second. ≈ channel->slotz[2] / channel->out[4].
+    var slotz: (Int, Int) = (0, 0)         // indices into chip.slot
     var pair: Int = -1                     // ≈ channel->pair (index, -1 = NULL)
-    var out: [SampleRef] = [ .zero, .zero, .zero, .zero ]   // ≈ channel->out[4] (int16_t*)
+    var out: (SampleRef, SampleRef, SampleRef, SampleRef) = (.zero, .zero, .zero, .zero)
 
     var chtype: UInt8 = 0
     var fNum: UInt16 = 0

@@ -26,8 +26,16 @@ public final class OPL3Chip {
 
     // ≈ opl3_chip (opl3.h:114). `zeromod` is not stored: every reference to
     // `&chip->zeromod` is modelled by `SampleRef.zero` / `TremRef.zero`.
-    var channel: [Channel] = Array(repeating: Channel(), count: 18)
-    var slot: [Slot] = (0 ..< 36).map { Slot(slotNum: UInt8($0)) }
+    //
+    // Performance: the 36 slots / 18 channels are touched on the order of a
+    // million times per second. Backing them with `UnsafeMutableBufferPointer`
+    // rather than Swift `Array` removes the dynamic exclusivity-enforcement
+    // (`swift_beginAccess`/`endAccess`), COW-uniqueness, and release-mode bounds
+    // overhead that otherwise dominated the hot loop — call sites (`slot[i].x`)
+    // are unchanged, and `Slot`/`Channel` are trivial value types so the raw
+    // buffers need no deinitialization. Both are owned for the chip's lifetime.
+    let channel: UnsafeMutableBufferPointer<Channel>
+    let slot: UnsafeMutableBufferPointer<Slot>
     var timer: UInt16 = 0
     var egTimer: UInt64 = 0
     var egTimerrem: UInt8 = 0
@@ -43,7 +51,7 @@ public final class OPL3Chip {
     var tremolopos: UInt8 = 0
     var tremoloshift: UInt8 = 0
     var noise: UInt32 = 0
-    var mixbuff: [Int32] = [ 0, 0, 0, 0 ]
+    var mixbuff: (Int32, Int32, Int32, Int32) = (0, 0, 0, 0)
     var rmHHBit2: UInt8 = 0
     var rmHHBit3: UInt8 = 0
     var rmHHBit7: UInt8 = 0
@@ -54,20 +62,35 @@ public final class OPL3Chip {
     // OPL3L resampler.
     var rateratio: Int32 = 0
     var samplecnt: Int32 = 0
-    var oldsamples: [Int16] = [ 0, 0, 0, 0 ]
-    var samples: [Int16] = [ 0, 0, 0, 0 ]
+    var oldsamples: (Int16, Int16, Int16, Int16) = (0, 0, 0, 0)
+    var samples: (Int16, Int16, Int16, Int16) = (0, 0, 0, 0)
 
     // Timed write buffer.
     var writebufSamplecnt: UInt64 = 0
     var writebufCur: UInt32 = 0
     var writebufLast: UInt32 = 0
     var writebufLasttime: UInt64 = 0
-    var writebuf: [WriteBuf] = Array(repeating: WriteBuf(), count: OPL3Const.writeBufSize)
+    // Also an unsafe buffer: the drain loop reads `writebuf[cur].time` every
+    // sample, so the array exclusivity/COW/bounds overhead showed up in the hot
+    // path too. Owned for the chip's lifetime; `WriteBuf` is a trivial value type.
+    let writebuf: UnsafeMutableBufferPointer<WriteBuf>
 
     /// ≈ `OPL3_Reset(&chip, samplerate)`.
     public init(sampleRate: UInt32 = OPL3Chip.nativeSampleRate) {
+        channel = UnsafeMutableBufferPointer<Channel>.allocate(capacity: 18)
+        channel.initialize(repeating: Channel())
+        slot = UnsafeMutableBufferPointer<Slot>.allocate(capacity: 36)
+        slot.initialize(repeating: Slot())
+        writebuf = UnsafeMutableBufferPointer<WriteBuf>.allocate(capacity: OPL3Const.writeBufSize)
+        writebuf.initialize(repeating: WriteBuf())
         self.sampleRate = sampleRate
         reset(sampleRate: sampleRate)
+    }
+
+    deinit {
+        channel.deallocate()
+        slot.deallocate()
+        writebuf.deallocate()
     }
 
     // MARK: - Source resolution (the Nuked pointer dereferences)
@@ -99,9 +122,10 @@ public final class OPL3Chip {
     public func reset(sampleRate: UInt32) {
         self.sampleRate = sampleRate
 
-        // memset(chip, 0, sizeof(opl3_chip)).
-        channel = Array(repeating: Channel(), count: 18)
-        slot = Array(repeating: Slot(), count: 36)
+        // memset(chip, 0, sizeof(opl3_chip)). Buffers are owned for the chip's
+        // lifetime, so re-initialize their contents in place rather than realloc.
+        for i in 0 ..< 18 { channel[i] = Channel() }
+        for i in 0 ..< 36 { slot[i] = Slot() }
         timer = 0
         egTimer = 0
         egTimerrem = 0
@@ -117,7 +141,7 @@ public final class OPL3Chip {
         tremolopos = 0
         tremoloshift = 0
         noise = 0
-        mixbuff = [ 0, 0, 0, 0 ]
+        mixbuff = (0, 0, 0, 0)
         rmHHBit2 = 0
         rmHHBit3 = 0
         rmHHBit7 = 0
@@ -126,13 +150,13 @@ public final class OPL3Chip {
         rmTCBit5 = 0
         rateratio = 0
         samplecnt = 0
-        oldsamples = [ 0, 0, 0, 0 ]
-        samples = [ 0, 0, 0, 0 ]
+        oldsamples = (0, 0, 0, 0)
+        samples = (0, 0, 0, 0)
         writebufSamplecnt = 0
         writebufCur = 0
         writebufLast = 0
         writebufLasttime = 0
-        writebuf = Array(repeating: WriteBuf(), count: OPL3Const.writeBufSize)
+        for i in 0 ..< OPL3Const.writeBufSize { writebuf[i] = WriteBuf() }
 
         for slotnum in 0 ..< 36 {
             slot[slotnum].mod = .zero
@@ -145,8 +169,8 @@ public final class OPL3Chip {
 
         for channum in 0 ..< 18 {
             let localChSlot = Int(OPL3Tables.chSlot[channum])
-            channel[channum].slotz[0] = localChSlot
-            channel[channum].slotz[1] = localChSlot + 3
+            channel[channum].slotz.0 = localChSlot
+            channel[channum].slotz.1 = localChSlot + 3
             slot[localChSlot].channel = channum
             slot[localChSlot + 3].channel = channum
             if channum % 9 < 3 {
@@ -155,7 +179,7 @@ public final class OPL3Chip {
                 channel[channum].pair = channum - 3
             }
 
-            channel[channum].out = [ .zero, .zero, .zero, .zero ]
+            channel[channum].out = ( .zero, .zero, .zero, .zero )
             channel[channum].chtype = OPL3Const.ch2op
             channel[channum].cha = 0xffff
             channel[channum].chb = 0xffff
@@ -174,8 +198,8 @@ public final class OPL3Chip {
     /// ≈ `OPL3_ChannelSetupAlg` (opl3.c:848). Wires `slot.mod` / `channel.out`
     /// per the channel's algorithm. `&chip->zeromod` ⇒ `.zero`.
     func channelSetupAlg(_ c: Int) {
-        let s0 = channel[c].slotz[0]
-        let s1 = channel[c].slotz[1]
+        let s0 = channel[c].slotz.0
+        let s1 = channel[c].slotz.1
 
         if channel[c].chtype == OPL3Const.chDrum {
             if channel[c].chNum == 7 || channel[c].chNum == 8 {
@@ -201,45 +225,45 @@ public final class OPL3Chip {
 
         if channel[c].alg & 0x04 != 0 {
             let p = channel[c].pair
-            let ps0 = channel[p].slotz[0]
-            let ps1 = channel[p].slotz[1]
-            channel[p].out = [ .zero, .zero, .zero, .zero ]
+            let ps0 = channel[p].slotz.0
+            let ps1 = channel[p].slotz.1
+            channel[p].out = ( .zero, .zero, .zero, .zero )
             switch channel[c].alg & 0x03 {
                 case 0x00:
                     slot[ps0].mod = .slotFbmod(ps0)
                     slot[ps1].mod = .slotOut(ps0)
                     slot[s0].mod = .slotOut(ps1)
                     slot[s1].mod = .slotOut(s0)
-                    channel[c].out = [ .slotOut(s1), .zero, .zero, .zero ]
+                    channel[c].out = ( .slotOut(s1), .zero, .zero, .zero )
                 case 0x01:
                     slot[ps0].mod = .slotFbmod(ps0)
                     slot[ps1].mod = .slotOut(ps0)
                     slot[s0].mod = .zero
                     slot[s1].mod = .slotOut(s0)
-                    channel[c].out = [ .slotOut(ps1), .slotOut(s1), .zero, .zero ]
+                    channel[c].out = ( .slotOut(ps1), .slotOut(s1), .zero, .zero )
                 case 0x02:
                     slot[ps0].mod = .slotFbmod(ps0)
                     slot[ps1].mod = .zero
                     slot[s0].mod = .slotOut(ps1)
                     slot[s1].mod = .slotOut(s0)
-                    channel[c].out = [ .slotOut(ps0), .slotOut(s1), .zero, .zero ]
+                    channel[c].out = ( .slotOut(ps0), .slotOut(s1), .zero, .zero )
                 default:    // 0x03
                     slot[ps0].mod = .slotFbmod(ps0)
                     slot[ps1].mod = .zero
                     slot[s0].mod = .slotOut(ps1)
                     slot[s1].mod = .zero
-                    channel[c].out = [ .slotOut(ps0), .slotOut(s0), .slotOut(s1), .zero ]
+                    channel[c].out = ( .slotOut(ps0), .slotOut(s0), .slotOut(s1), .zero )
             }
         } else {
             switch channel[c].alg & 0x01 {
                 case 0x00:
                     slot[s0].mod = .slotFbmod(s0)
                     slot[s1].mod = .slotOut(s0)
-                    channel[c].out = [ .slotOut(s1), .zero, .zero, .zero ]
+                    channel[c].out = ( .slotOut(s1), .zero, .zero, .zero )
                 default:    // 0x01
                     slot[s0].mod = .slotFbmod(s0)
                     slot[s1].mod = .zero
-                    channel[c].out = [ .slotOut(s0), .slotOut(s1), .zero, .zero ]
+                    channel[c].out = ( .slotOut(s0), .slotOut(s1), .zero, .zero )
             }
         }
     }

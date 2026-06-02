@@ -25,8 +25,8 @@ extension OPL3Chip {
 
     // opl3.c:1111 OPL3_Generate4Ch
     func generate4Ch() -> (Int16, Int16, Int16, Int16) {
-        let buf1 = clipSample(mixbuff[1])
-        let buf3 = clipSample(mixbuff[3])
+        let buf1 = clipSample(mixbuff.1)
+        let buf3 = clipSample(mixbuff.3)
 
         for ii in 0 ..< 15 {
             processSlot(ii)
@@ -37,21 +37,21 @@ extension OPL3Chip {
         for ii in 0 ..< 18 {
             let out = channel[ii].out
             let accm = Int16(truncatingIfNeeded:
-                Int32(sample(at: out[0])) &+ Int32(sample(at: out[1]))
-                &+ Int32(sample(at: out[2])) &+ Int32(sample(at: out[3])))
+                Int32(sample(at: out.0)) &+ Int32(sample(at: out.1))
+                &+ Int32(sample(at: out.2)) &+ Int32(sample(at: out.3)))
             mix0 &+= Int32(Int16(truncatingIfNeeded: Int32(accm) & Int32(channel[ii].cha)))
             mix1 &+= Int32(Int16(truncatingIfNeeded: Int32(accm) & Int32(channel[ii].chc)))
         }
 
-        mixbuff[0] = mix0
-        mixbuff[2] = mix1
+        mixbuff.0 = mix0
+        mixbuff.2 = mix1
 
         for ii in 15 ..< 18 {
             processSlot(ii)
         }
 
-        let buf0 = clipSample(mixbuff[0])
-        let buf2 = clipSample(mixbuff[2])
+        let buf0 = clipSample(mixbuff.0)
+        let buf2 = clipSample(mixbuff.2)
 
         for ii in 18 ..< 33 {
             processSlot(ii)
@@ -62,14 +62,14 @@ extension OPL3Chip {
         for ii in 0 ..< 18 {
             let out = channel[ii].out
             let accm = Int16(truncatingIfNeeded:
-                Int32(sample(at: out[0])) &+ Int32(sample(at: out[1]))
-                &+ Int32(sample(at: out[2])) &+ Int32(sample(at: out[3])))
+                Int32(sample(at: out.0)) &+ Int32(sample(at: out.1))
+                &+ Int32(sample(at: out.2)) &+ Int32(sample(at: out.3)))
             mix0 &+= Int32(Int16(truncatingIfNeeded: Int32(accm) & Int32(channel[ii].chb)))
             mix1 &+= Int32(Int16(truncatingIfNeeded: Int32(accm) & Int32(channel[ii].chd)))
         }
 
-        mixbuff[1] = mix0
-        mixbuff[3] = mix1
+        mixbuff.1 = mix0
+        mixbuff.3 = mix1
 
         for ii in 33 ..< 36 {
             processSlot(ii)
@@ -139,21 +139,20 @@ extension OPL3Chip {
     func generate4ChResampled() -> (Int16, Int16, Int16, Int16) {
         while samplecnt >= rateratio {
             oldsamples = samples
-            let s = generate4Ch()
-            samples = [ s.0, s.1, s.2, s.3 ]
+            samples = generate4Ch()
             samplecnt -= rateratio
         }
 
-        let b0 = resampleChannel(0)
-        let b1 = resampleChannel(1)
-        let b2 = resampleChannel(2)
-        let b3 = resampleChannel(3)
+        let b0 = resample(oldsamples.0, samples.0)
+        let b1 = resample(oldsamples.1, samples.1)
+        let b2 = resample(oldsamples.2, samples.2)
+        let b3 = resample(oldsamples.3, samples.3)
         samplecnt = samplecnt &+ (Int32(1) << Int32(OPL3Const.rsmFrac))
         return (b0, b1, b2, b3)
     }
 
-    private func resampleChannel(_ k: Int) -> Int16 {
-        let blended = Int32(oldsamples[k]) * (rateratio - samplecnt) + Int32(samples[k]) * samplecnt
+    private func resample(_ old: Int16, _ new: Int16) -> Int16 {
+        let blended = Int32(old) * (rateratio - samplecnt) + Int32(new) * samplecnt
         return Int16(truncatingIfNeeded: blended / rateratio)
     }
 
