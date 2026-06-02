@@ -1,0 +1,15 @@
+{
+  "originHash" : "e3d4c0b4eb69193b945f0741193b74f87b20e9843098fbb6835f1d0f25dfb8b1",
+  "pins" : [
+    {
+      "identity" : "memoirs-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/bealex/memoirs-ios.git",
+      "state" : {
+        "revision" : "5596795cc2c21e7980228af075a2b9ce9748d27d",
+        "version" : "2.0.3"
+      }
+    }
+  ],
+  "version" : 3
+}

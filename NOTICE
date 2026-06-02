@@ -1,0 +1,44 @@
+SwiftOPL3 — pure-Swift OPL3 (YMF262) chip + Westwood ADL music driver
+Copyright (C) 2026 Alex Babaev and contributors
+
+This program is free software; you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the Free
+Software Foundation; either version 2.1 of the License, or (at your option) any
+later version. See the LICENSE file for the full text.
+
+SPDX-License-Identifier: LGPL-2.1-or-later
+
+------------------------------------------------------------------------------
+Attribution — upstream works this project is a derivative of
+------------------------------------------------------------------------------
+
+SwiftOPL3 is a function-by-function transcription of the following LGPL-2.1
+works. Their source code is NOT included in this repository; it is referenced
+in the documentation and cloned on demand into References/ (gitignored) only to
+regenerate the verification fixtures. All credit for the original algorithms,
+tables, and behaviour belongs to their authors.
+
+1. Nuked-OPL3 — the OPL3 (YMF262) emulator
+     Copyright (C) 2013-2020 Nuke.YKT
+     https://github.com/nukeykt/Nuked-OPL3
+     Licensed under the GNU LGPL 2.1.
+     ⇒ transcribed into Sources/SwiftOPL3/ (opl3.c / opl3.h).
+
+2. AdPlug — `src/adl.cpp` (CadlPlayer), the Westwood ADL player
+     Copyright (C) 1999-2007 Simon Peter et al.
+     https://github.com/adplug/adplug
+     Licensed under the GNU LGPL 2.1.
+     ⇒ transcribed into Sources/WestwoodADL/ (adl.cpp / adl.h).
+
+   AdPlug's adl.cpp is itself a port of the ScummVM / Kyra AdLib driver
+   (engines/kyra/sound/drivers/adlib.cpp), by Torbjörn Andersson and Johannes
+   Schickel ('lordhoto'), https://github.com/scummvm/scummvm — used as a
+   cross-reference oracle.
+
+------------------------------------------------------------------------------
+Not included
+------------------------------------------------------------------------------
+
+Dune II (and other Westwood/Kyra/EoB) `.ADL` music files are copyrighted game
+assets and are NOT part of this repository. Supply your own to render or trace
+real tracks.
