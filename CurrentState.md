@@ -29,6 +29,13 @@ Optional next steps (polish, not blockers):
 
 ## Recently completed
 
+- **Driver ARC/allocation cleanup (real-time-audio safety).** Three steps, all output-bit-identical (render checksum 1434131890 unchanged), 68 tests green, zero warnings:
+  1. `Channel.dataptrStack` `[Int?]` → fixed tuple `(Int?, Int?, Int?, Int?)` → `Channel` becomes a **trivial** value type; `initChannel` no longer heap-allocates per tick.
+  2. `AdLibDriver.sink` `weak` → strong, dropping the atomic weak-load from `writeOPL`.
+  3. **`_channels`/`_programQueue`/`_soundData` → owned `UnsafeMutableBufferPointer`** (chip's `slot`/`channel` model; enabled by step 1 making `Channel` trivial). **A CPU win, not an allocation win.** Driver-tick CPU ~4.9× (3.95 → 0.81 s for 14.4M ticks) by removing Swift `Array` bounds/exclusivity/COW-uniqueness-check/element-copy overhead (the symbols that topped the Time Profiler).
+  - **Corrected mis-diagnosis (measured with `Scripts/count-allocs.sh`, a libmalloc `malloc_logger` interpose):** the driver tick **never allocated per-tick** — baseline and optimized both allocate a constant ~780 total regardless of run length; all startup. The profiler's `beginCOWMutation` was a uniqueness *check* on a uniquely-owned buffer (no copy), not a per-mutation COW allocation. The slow `driver` Allocations *instrument* run was VM-Tracker/instrument overhead on this macOS 26 beta, not app allocations. Use `count-allocs.sh` (exact, no GUI) over the Allocations instrument for this question.
+  - Profiling harness: `oplbench` `driver` mode + `Scripts/record-traces.sh` (mode × instrument matrix → gitignored `Traces/`; Allocations rows kept short) + `Scripts/count-allocs.sh`.
+  - Minor item left as-is: `pitchBendTables`/`unkTable2` `[[UInt8]]` indexing retains an inner `Array` per access (per-note, not per-tick). The chip hot loop was already allocation/ARC-free.
 - **Phase 4 driver + Phase 5 first light.** `AdLibDriver` (+`AdLibDriver+Opcodes`) and `ADLPlayer` fully transcribe AdPlug `AdLibDriver`/`CadlPlayer`. Driver verified by **trace equivalence vs AdPlug** (`ADLTraceTests`, 56-write synthetic track incl. key-on/pitchBend/slide). End-to-end synthetic `.ADL` → `ADLPlayer` → `OPL3Chip` renders audible+deterministic PCM (`ADLPlayerTests`).
 - **Phase 3 ADL parser.** `ADLData.load` (`CadlPlayer::load`) + offset lookups; `ADLDataTests`.
 - **Phase 2 chip golden completed.** 5 bit-exact PCM fixtures (sine/waveforms/fourop/rhythm/resample) via `chip_golden_harness.c`; parameterised `OPL3GoldenTests`.

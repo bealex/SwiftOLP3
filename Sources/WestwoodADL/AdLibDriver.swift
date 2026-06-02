@@ -42,7 +42,12 @@ final class AdLibDriver {
         var baseOctave: Int8 = 0
         var priority: UInt8 = 0
         var dataptrStackPos: Int = 0
-        var dataptrStack: [Int?] = [ nil, nil, nil, nil ]
+        // ≈ `const uint8 *dataptrStack[4]` (adl.cpp:184). A fixed 4-slot tuple, not
+        // a Swift `[Int?]`, so `Channel` stays a trivial value type: `Channel()`
+        // copies are a plain memcpy (no ARC), and `initChannel` — called per
+        // note/program setup at the 72 Hz tick — no longer heap-allocates a stack
+        // array each time. Real-time-audio safe: zero allocation on the tick path.
+        var dataptrStack: (Int?, Int?, Int?, Int?) = (nil, nil, nil, nil)
         var baseNote: Int8 = 0
         var slideTempo: UInt8 = 0
         var slideTimer: UInt8 = 0
@@ -83,6 +88,32 @@ final class AdLibDriver {
         var rawNote: UInt8 = 0
         var pitchBend: Int8 = 0
         var volumeModifier: UInt8 = 0
+
+        // The `dataptrStack[4]` depth — replaces the former Array `.count`.
+        static let dataptrStackCount = 4
+
+        // Indexed access into the fixed `dataptrStack` tuple. `pos` is always in
+        // 0..<4 at the call sites (guarded by `dataptrStackPos`), so the `default`
+        // is slot 3.
+        @inline(__always)
+        func dataptrAtStack(_ pos: Int) -> Int? {
+            switch pos {
+                case 0: return dataptrStack.0
+                case 1: return dataptrStack.1
+                case 2: return dataptrStack.2
+                default: return dataptrStack.3
+            }
+        }
+
+        @inline(__always)
+        mutating func setDataptrAtStack(_ pos: Int, _ value: Int?) {
+            switch pos {
+                case 0: dataptrStack.0 = value
+                case 1: dataptrStack.1 = value
+                case 2: dataptrStack.2 = value
+                default: dataptrStack.3 = value
+            }
+        }
     }
 
     struct QueueEntry {
@@ -91,7 +122,11 @@ final class AdLibDriver {
         var volume: UInt8 = 0
     }
 
-    weak var sink: OPLRegisterSink?
+    // Strong, not `weak`: `writeOPL` (the choke point for *every* register write)
+    // would otherwise pay an atomic weak-side-table load per write. There is no
+    // retain cycle — ownership runs ADLPlayer → driver → sink → chip, and nothing
+    // points back — so a strong reference is safe and removes that ARC traffic.
+    var sink: OPLRegisterSink?
 
     var _curChannel = 0
     var _soundTrigger: UInt8 = 0
@@ -118,9 +153,18 @@ final class AdLibDriver {
     var _opExtraLevel1BD: UInt8 = 0
     var _opExtraLevel2BD: UInt8 = 0
 
-    var _soundData: [UInt8] = []
+    // Owned raw buffer, not `[UInt8]`: the data blob is read on essentially every
+    // opcode and *written* by `adjustSfxData`. As a class-stored Array, each
+    // `self._soundData[i] = …` write could COW-copy the whole blob (the buffer
+    // briefly looks non-unique through the property access), and the read path
+    // paid bounds/exclusivity checks. A raw buffer has no refcount, so neither
+    // happens. The parsed `[UInt8]` is copied in by `setSoundData`; freed and
+    // re-allocated there and in `deinit`.
+    var _soundData = UnsafeMutableBufferPointer<UInt8>(start: nil, count: 0)
 
-    var _programQueue: [QueueEntry] = Array(repeating: QueueEntry(), count: 16)
+    // Owned raw buffer, not `[QueueEntry]` — same class-stored-Array COW reason as
+    // `_channels`. Trivial element; allocated in `init`, freed in `deinit`.
+    let _programQueue: UnsafeMutableBufferPointer<QueueEntry>
     var _programStartTimeout = 0
     var _programQueueStart = 0
     var _programQueueEnd = 0
@@ -130,7 +174,16 @@ final class AdLibDriver {
     var _sfxPriority = 0
     var _sfxVelocity = 0
 
-    var _channels: [Channel] = Array(repeating: Channel(), count: 10)
+    // The hot one. As a class-stored `[Channel]`, every per-tick
+    // `self._channels[c].field = …` made the buffer briefly non-unique through the
+    // property load, so `beginCOWMutation` copied all 10 channels on each mutation
+    // — the dominant cost in the Time Profiler (beginCOWMutation #1, plus
+    // swift_allocObject). A raw buffer (a `let` holding a pointer, no refcount)
+    // mutates in place: no COW, no allocation, no bounds/exclusivity checks. This
+    // is the same model the chip uses for `slot`/`channel`. `Channel` is a trivial
+    // value type (since `dataptrStack` became a tuple), so the buffer needs no
+    // deinitialization. Allocated in `init`, freed in `deinit`.
+    let _channels: UnsafeMutableBufferPointer<Channel>
 
     var _vibratoAndAMDepthBits: UInt8 = 0
     var _rhythmSectionBits: UInt8 = 0
@@ -151,6 +204,21 @@ final class AdLibDriver {
 
     var soundTrigger: Int { Int(_soundTrigger) }
 
+    init() {
+        _channels = UnsafeMutableBufferPointer<Channel>.allocate(capacity: 10)
+        _channels.initialize(repeating: Channel())
+        _programQueue = UnsafeMutableBufferPointer<QueueEntry>.allocate(capacity: 16)
+        _programQueue.initialize(repeating: QueueEntry())
+    }
+
+    deinit {
+        _channels.deallocate()
+        _programQueue.deallocate()
+        if _soundData.baseAddress != nil {
+            _soundData.deallocate()
+        }
+    }
+
     // MARK: - Setup / public-ish surface (adl.cpp:586..)
 
     func setVersion(_ v: Int) {
@@ -167,7 +235,18 @@ final class AdLibDriver {
         _programQueueEnd = 0
         _programQueue[0] = QueueEntry()
         _sfxPointer = nil
-        _soundData = data
+
+        // Copy the parsed bytes into an owned raw buffer (see `_soundData` decl).
+        if _soundData.baseAddress != nil {
+            _soundData.deallocate()
+        }
+        if data.isEmpty {
+            _soundData = UnsafeMutableBufferPointer<UInt8>(start: nil, count: 0)
+        } else {
+            let buf = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: data.count)
+            _ = buf.initialize(from: data)
+            _soundData = buf
+        }
     }
 
     func startSound(_ track: Int, _ volume: Int) {

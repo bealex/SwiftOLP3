@@ -160,11 +160,11 @@ extension AdLibDriver {
 
     func update_jumpToSubroutine(_ c: Int, _ values: Int) -> Int {
         let add = signed16LE(values)
-        if _channels[c].dataptrStackPos >= _channels[c].dataptrStack.count {
+        if _channels[c].dataptrStackPos >= Channel.dataptrStackCount {
             return 0
         }
 
-        _channels[c].dataptrStack[_channels[c].dataptrStackPos] = _channels[c].dataptr
+        _channels[c].setDataptrAtStack(_channels[c].dataptrStackPos, _channels[c].dataptr)
         _channels[c].dataptrStackPos += 1
         if _version < 3 {
             _channels[c].dataptr = checkDataOffset(0, add - 191)
@@ -174,7 +174,7 @@ extension AdLibDriver {
 
         if _channels[c].dataptr == nil {
             _channels[c].dataptrStackPos -= 1
-            _channels[c].dataptr = _channels[c].dataptrStack[_channels[c].dataptrStackPos]
+            _channels[c].dataptr = _channels[c].dataptrAtStack(_channels[c].dataptrStackPos)
         }
         return 0
     }
@@ -185,7 +185,7 @@ extension AdLibDriver {
         }
 
         _channels[c].dataptrStackPos -= 1
-        _channels[c].dataptr = _channels[c].dataptrStack[_channels[c].dataptrStackPos]
+        _channels[c].dataptr = _channels[c].dataptrAtStack(_channels[c].dataptrStackPos)
         return 0
     }
 

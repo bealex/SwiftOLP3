@@ -11,12 +11,22 @@
 //  Usage:
 //    oplbench [seconds] [mode] [adl-file] [subsong]
 //      seconds  how many seconds of audio to synthesize     (default 300)
-//      mode     chip | render                                (default chip)
-//      adl-file required for `render`; subsong default 2
+//      mode     chip | render | driver                       (default chip)
+//      adl-file required for `render`/`driver`; subsong default 2
+//
+//  Modes:
+//    chip    pure chip DSP at native 49716 Hz (Time Profiler — DSP dominates).
+//    render  full driver→chip→44.1k (the real playback path).
+//    driver  ONLY the driver tick at 72 Hz + its register writes, no chip DSP.
+//            This isolates the driver code path for the Allocations instrument —
+//            a clean run should show ~zero per-tick heap growth (the Channel /
+//            initChannel allocations were removed). The track is re-rewound when
+//            it ends so the note/program-setup path keeps getting exercised.
 //
 //  Examples:
 //    oplbench 300                              # pure chip DSP at native 49716 Hz
 //    oplbench 120 render Resources/Music/DUNE8.ADL 2   # full driver→chip→44.1k
+//    oplbench 120 driver Resources/Music/DUNE8.ADL 2   # driver-only (Allocations)
 //
 //  Profile in Instruments:
 //    swift build -c release
@@ -79,6 +89,38 @@ switch mode {
             }
         }
         report("render", seconds, -t.timeIntervalSinceNow, checksum)
+
+    case "driver":
+        // Driver-only: tick the 72 Hz callback (and its OPL register writes via
+        // the sink) but never call the chip's DSP. The Allocations instrument then
+        // shows the driver's heap behaviour in isolation — it should be flat once
+        // warmed up. Re-rewind at end-of-track so the note/program-setup path
+        // (initChannel, startSound, the opcode stream) keeps running for the whole
+        // measured window rather than going idle.
+        guard args.count > 3, let data = try? Data(contentsOf: URL(fileURLWithPath: args[3])) else {
+            FileHandle.standardError.write(Data("driver mode needs a readable .ADL path\n".utf8))
+            exit(2)
+        }
+        let subsong = args.count > 4 ? (Int(args[4]) ?? 2) : 2
+        let chip = OPL3Chip(sampleRate: OPL3Chip.nativeSampleRate)
+        let player = ADLPlayer(chip: chip)
+        guard player.load(data) else {
+            FileHandle.standardError.write(Data("not a valid .ADL\n".utf8))
+            exit(1)
+        }
+        player.rewind(subsong: subsong)
+
+        let totalTicks = Int(seconds * player.refreshRate)
+        var checksum: Int64 = 0
+        let t = Date()
+        for _ in 0 ..< totalTicks {
+            let playing = player.update()
+            checksum &+= (playing ? 1 : 0) &+ Int64(player.soundTrigger)
+            if !playing {
+                player.rewind(subsong: subsong)
+            }
+        }
+        report("driver", seconds, -t.timeIntervalSinceNow, checksum)
 
     default:    // chip
         let chip = OPL3Chip(sampleRate: OPL3Chip.nativeSampleRate)
