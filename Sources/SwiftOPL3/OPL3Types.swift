@@ -21,6 +21,27 @@
 //  verifiable against `opl3.c:line`; this overrides the usual no-abbreviation
 //  style for this faithful-port package.
 
+// EXPERIMENTAL — `OPL_FLOAT` floating-point DSP fork (off by default).
+//
+// This package is normally a *bit-exact integer* transcription of Nuked-OPL3
+// (see CLAUDE.md "faithful transcription" rule). Building with `-DOPL_FLOAT`
+// swaps the per-sample synthesis arithmetic to 32-bit float — a deliberately
+// non-faithful, idealized variant used only to evaluate whether floating-point
+// DSP is faster on this hardware. The integer path is the default and is left
+// untouched; nothing here changes unless `OPL_FLOAT` is defined.
+//
+// `OPLSample` is the per-operator sample / modulation type. In the integer
+// build it is the Nuked `int16_t`; in the float build it is `Float`, kept at
+// the *same numeric scale* (operator full-scale ≈ ±4084) so that the FM
+// phase-modulation chain (`pgPhaseOut + modVal`) and the feedback shift behave
+// identically — only the synthesis math (sine, exp→gain, mix) becomes float.
+// See OPL3FloatDSP.swift.
+#if OPL_FLOAT || OPL_SIMD
+public typealias OPLSample = Float
+#else
+public typealias OPLSample = Int16
+#endif
+
 /// A reference to an `int16_t` modulation/output source. Models a Nuked
 /// `int16_t *` that points at `&chip->zeromod`, a slot's `out`, or a slot's
 /// `fbmod`. Resolved by `OPL3Chip.sample(at:)`.
@@ -44,9 +65,9 @@ struct Slot {
     var mod: SampleRef = .zero      // ≈ slot->mod   (int16_t*)
     var trem: TremRef = .zero       // ≈ slot->trem  (uint8_t*)
 
-    var out: Int16 = 0
-    var fbmod: Int16 = 0
-    var prout: Int16 = 0
+    var out: OPLSample = 0
+    var fbmod: OPLSample = 0
+    var prout: OPLSample = 0
     var egRout: UInt16 = 0
     var egOut: UInt16 = 0
     var egInc: UInt8 = 0            // vestigial in v1.8 (declared, unused) — kept for fidelity

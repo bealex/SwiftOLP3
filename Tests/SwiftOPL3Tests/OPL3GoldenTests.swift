@@ -124,6 +124,7 @@ struct OPL3GoldenTests {
         return data.withUnsafeBytes { Array($0.bindMemory(to: Int16.self)) }
     }
 
+    #if !OPL_FLOAT && !OPL_SIMD
     @Test("bit-exact PCM vs Nuked", arguments: [
         "sine_note_49716", "waveforms_49716", "fourop_49716", "rhythm_49716", "resample_44100",
     ])
@@ -142,4 +143,48 @@ struct OPL3GoldenTests {
         }
         #expect(firstMismatch == -1, "\(name): first PCM divergence at interleaved index \(firstMismatch)")
     }
+    #else
+    // Float-DSP fork (OPL3FloatDSP.swift): the output is an *idealized*,
+    // non-bit-exact reimplementation, so it is validated against the same Nuked
+    // goldens by tolerance, not equality. We report RMS and peak error as a
+    // percentage of full scale (32768) and assert the RMS stays small — this is
+    // the "is the float path correct?" half of the float experiment. Thresholds
+    // are per-fixture: the tonal patches track Nuked closely; the rhythm patch
+    // mixes the noise-driven percussion operators, which the float waveform
+    // shapes approximate more loosely.
+    @Test("tolerance PCM vs Nuked (float DSP)", arguments: [
+        "sine_note_49716", "waveforms_49716", "fourop_49716", "rhythm_49716", "resample_44100",
+    ])
+    func goldenTolerance(_ name: String) {
+        guard let golden = Self.golden(name) else {
+            return  // fixture not generated on this checkout — skip
+        }
+
+        let rendered = Self.render(name)
+        #expect(rendered.count == golden.count)
+
+        let n = min(rendered.count, golden.count)
+        var sumSqErr = 0.0
+        var maxErr = 0.0
+        for i in 0 ..< n {
+            let e = Double(rendered[i]) - Double(golden[i])
+            sumSqErr += e * e
+            maxErr = max(maxErr, abs(e))
+        }
+        let rms = n > 0 ? (sumSqErr / Double(n)).squareRoot() : 0
+        let rmsPct = rms / 32768.0 * 100.0
+        let peakPct = maxErr / 32768.0 * 100.0
+        print(String(format: "  float-DSP vs Nuked  %@: RMS %.3f%%  peak %.3f%%  (RMS %.1f, peak %.0f LSB)",
+                     name, rmsPct, peakPct, rms, maxErr))
+
+        // Per-fixture RMS ceiling, set just above the measured error as a
+        // regression guard. Note: the `fourop_49716` and `waveforms_49716`
+        // goldens are silent in the Nuked reference itself (peak 0), so those
+        // two cases compare silence to silence — the real accuracy evidence is
+        // sine_note (~0.13%), resample (~0.12%) and rhythm (~1.0%, noise-driven
+        // percussion that clips to full scale).
+        let rmsCeilingPct = name == "rhythm_49716" ? 2.0 : 0.5
+        #expect(rmsPct < rmsCeilingPct, "\(name): float RMS error \(rmsPct)% exceeds \(rmsCeilingPct)%")
+    }
+    #endif
 }

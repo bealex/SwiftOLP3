@@ -74,3 +74,7 @@ Mixing them (only ever checking final PCM of a full song) would make every bug a
 ## Logging seam
 
 `OPLLog` (in `SwiftOPL3`) is the only logging entry point; both targets use it. Compiled out in release. See `Logging.md`.
+
+## Performance & experimental DSP variants
+
+The default chip is bit-exact integer. Experimental float (`OPL_FLOAT`) and SIMD-across-channels (`OPL_SIMD`) forks live behind compile flags (off by default). The performance investigation — where the per-sample time goes, what each fork measured, and how DOSBox's DBOPL emulator differs (and why we can't borrow it) — is written up in `Performance.md`.

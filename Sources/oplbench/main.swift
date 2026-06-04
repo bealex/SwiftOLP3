@@ -52,10 +52,21 @@ func keyOnNote(_ chip: OPL3Chip) {
     chip.write(0xB0, 0x31)
 }
 
+// Which DSP the SwiftOPL3 module was compiled with (see OPL3FloatDSP.swift). The
+// flag must be passed to *both* the library and this target, e.g.
+// `swift build -c release -Xswiftc -DOPL_FLOAT`.
+#if OPL_SIMD
+let dspKind = "simd-float32"
+#elseif OPL_FLOAT
+let dspKind = "float32"
+#else
+let dspKind = "int"
+#endif
+
 func report(_ label: String, _ audioSeconds: Double, _ elapsed: Double, _ checksum: Int64) {
     let rt = elapsed > 0 ? audioSeconds / elapsed : 0
-    let line = String(format: "%@: %.1fs audio in %.3fs  (%.0fx real-time)  [checksum %d]",
-                      label, audioSeconds, elapsed, rt, checksum)
+    let line = String(format: "%@ [%@ DSP]: %.1fs audio in %.3fs  (%.0fx real-time)  [checksum %d]",
+                      label, dspKind, audioSeconds, elapsed, rt, checksum)
     print(line)
 }
 

@@ -96,6 +96,10 @@ extension OPL3Chip {
     // The reference indexes `envelope_sin[reg_wf]`; we dispatch with a `switch`
     // over the eight waveform functions (direct calls, no per-slot closure /
     // existential indirection) — identical result, much cheaper in the hot loop.
+    //
+    // Integer (faithful) build only. The OPL_FLOAT fork (OPL3FloatDSP.swift) and
+    // the OPL_SIMD fork (OPL3SimdDSP.swift) provide their own slot synthesis.
+    #if !OPL_FLOAT && !OPL_SIMD
     func slotGenerate(_ s: Int) {
         let modVal = sample(at: slot[s].mod)
         let phaseArg = UInt16(truncatingIfNeeded: Int(slot[s].pgPhaseOut) &+ Int(modVal))
@@ -126,16 +130,22 @@ extension OPL3Chip {
 
         slot[s].prout = slot[s].out
     }
+    #endif  // !OPL_FLOAT && !OPL_SIMD (slotGenerate / slotCalcFB)
 
     // opl3.c:1103 OPL3_ProcessSlot
+    // Drives the AoS slot synthesis (integer or OPL_FLOAT). The OPL_SIMD fork
+    // processes operators through the SoA pipeline (`simdProcessSlot`) instead.
+    #if !OPL_SIMD
     func processSlot(_ s: Int) {
         slotCalcFB(s)
         envelopeCalc(s)
         phaseGenerate(s)
         slotGenerate(s)
     }
+    #endif
 
     // opl3.c:1090 OPL3_ClipSample
+    #if !OPL_FLOAT && !OPL_SIMD
     @inline(__always)
     func clipSample(_ sample: Int32) -> Int16 {
         var sample = sample
@@ -147,4 +157,5 @@ extension OPL3Chip {
 
         return Int16(truncatingIfNeeded: sample)
     }
+    #endif  // !OPL_FLOAT && !OPL_SIMD (clipSample)
 }

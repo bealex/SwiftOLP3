@@ -51,7 +51,13 @@ public final class OPL3Chip {
     var tremolopos: UInt8 = 0
     var tremoloshift: UInt8 = 0
     var noise: UInt32 = 0
+    // Mix accumulators. Int32 in the faithful build; Float under the experimental
+    // float forks OPL_FLOAT (OPL3FloatDSP.swift) and OPL_SIMD (OPL3SimdDSP.swift).
+    #if OPL_FLOAT || OPL_SIMD
+    var mixbuff: (Float, Float, Float, Float) = (0, 0, 0, 0)
+    #else
     var mixbuff: (Int32, Int32, Int32, Int32) = (0, 0, 0, 0)
+    #endif
     var rmHHBit2: UInt8 = 0
     var rmHHBit3: UInt8 = 0
     var rmHHBit7: UInt8 = 0
@@ -74,6 +80,16 @@ public final class OPL3Chip {
     // sample, so the array exclusivity/COW/bounds overhead showed up in the hot
     // path too. Owned for the chip's lifetime; `WriteBuf` is a trivial value type.
     let writebuf: UnsafeMutableBufferPointer<WriteBuf>
+
+    #if OPL_SIMD
+    // EXPERIMENTAL Struct-of-Arrays hot-loop mirror (OPL3SimdDSP.swift). Config is
+    // synced from the AoS state above when `simdDirty`; dynamic state is seeded
+    // from it once after reset (`simdNeedsSeed`). Default-initialised so it exists
+    // before `reset` runs from `init`.
+    let simd = OPL3SimdState()
+    var simdDirty = true
+    var simdNeedsSeed = true
+    #endif
 
     /// ≈ `OPL3_Reset(&chip, samplerate)`.
     public init(sampleRate: UInt32 = OPL3Chip.nativeSampleRate) {
@@ -98,7 +114,7 @@ public final class OPL3Chip {
     /// Resolves a `SampleRef` to the live `int16_t` it points at (`*slot->mod`,
     /// `*channel->out[k]`). `.zero` ≈ `*(&chip->zeromod)`.
     @inline(__always)
-    func sample(at ref: SampleRef) -> Int16 {
+    func sample(at ref: SampleRef) -> OPLSample {
         switch ref {
             case .zero: return 0
             case .slotOut(let i): return slot[i].out
@@ -191,6 +207,12 @@ public final class OPL3Chip {
         rateratio = Int32(truncatingIfNeeded: (sampleRate &<< OPL3Const.rsmFrac) / OPL3Const.nativeFreq)
         tremoloshift = 4
         vibshift = 1
+
+        #if OPL_SIMD
+        // The AoS state above is the seed for the SoA mirror; (re)seed lazily.
+        simdNeedsSeed = true
+        simdDirty = true
+        #endif
     }
 
     // MARK: - Algorithm routing
@@ -274,12 +296,18 @@ public final class OPL3Chip {
     public func write(_ reg: UInt16, _ value: UInt8) {
         OPLLog.reg(reg, value)
         writeReg(reg, value)
+        #if OPL_SIMD
+        simdDirty = true
+        #endif
     }
 
     /// ≈ `OPL3_WriteRegBuffered` (timed write queue).
     public func writeBuffered(_ reg: UInt16, _ value: UInt8) {
         OPLLog.reg(reg, value)
         writeRegBuffered(reg, value)
+        #if OPL_SIMD
+        simdDirty = true
+        #endif
     }
 
     /// ≈ `OPL3_Generate` — one native-rate stereo sample (buf[0], buf[1]).
