@@ -14,10 +14,10 @@ import Testing
 struct OPL3PhaseTests {
 
     // clipSample / slotCalcFB / slotGenerate are the per-sample synthesis
-    // functions the OPL_FLOAT fork replaces (OPL3FloatDSP.swift). Their exact
-    // integer values only hold in the faithful build; under OPL_FLOAT / OPL_SIMD
+    // functions the block-SIMD float fork replaces (OPL3BlockSimd.swift). Their
+    // exact integer values only hold in the faithful build; under OPL_BLOCKSIMD
     // the float path is validated by the tolerance golden in OPL3GoldenTests.
-    #if !OPL_FLOAT && !OPL_SIMD
+    #if !OPL_BLOCKSIMD
     @Test("clipSample saturates to int16 range")
     func clipSample() {
         let chip = OPL3Chip()
@@ -65,7 +65,7 @@ struct OPL3PhaseTests {
         chip.slotGenerate(s)
         #expect(chip.slot[s].out == OPL3Waveforms.envelopeCalcSin0(0x200, 0))
     }
-    #endif  // !OPL_FLOAT
+    #endif  // !OPL_BLOCKSIMD
 
     @Test("phase accumulation: pg_phase += (basefreq * mt[mult]) >> 1")
     func phaseAccumulation() {

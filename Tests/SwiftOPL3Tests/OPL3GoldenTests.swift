@@ -124,7 +124,7 @@ struct OPL3GoldenTests {
         return data.withUnsafeBytes { Array($0.bindMemory(to: Int16.self)) }
     }
 
-    #if !OPL_FLOAT && !OPL_SIMD
+    #if !OPL_BLOCKSIMD
     @Test("bit-exact PCM vs Nuked", arguments: [
         "sine_note_49716", "waveforms_49716", "fourop_49716", "rhythm_49716", "resample_44100",
     ])
@@ -144,15 +144,17 @@ struct OPL3GoldenTests {
         #expect(firstMismatch == -1, "\(name): first PCM divergence at interleaved index \(firstMismatch)")
     }
     #else
-    // Float-DSP fork (OPL3FloatDSP.swift): the output is an *idealized*,
+    // Block-SIMD float fork (OPL3BlockSimd.swift): the output is an *idealized*,
     // non-bit-exact reimplementation, so it is validated against the same Nuked
     // goldens by tolerance, not equality. We report RMS and peak error as a
-    // percentage of full scale (32768) and assert the RMS stays small — this is
-    // the "is the float path correct?" half of the float experiment. Thresholds
-    // are per-fixture: the tonal patches track Nuked closely; the rhythm patch
-    // mixes the noise-driven percussion operators, which the float waveform
-    // shapes approximate more loosely.
-    @Test("tolerance PCM vs Nuked (float DSP)", arguments: [
+    // percentage of full scale (32768) and assert the RMS stays small.
+    //
+    // Rhythm percussion IS modelled (the noise LFSR is advanced 36×/sample with
+    // the rmHH/rmTC bit coupling, and the channel-sample-delay quirk is honoured),
+    // so it tracks Nuked to ~1 % like the tonal patches — the noise-driven drums
+    // just clip to full scale, so a slightly looser ceiling. `fourop`/`waveforms`
+    // are silent in the Nuked reference itself (vacuous).
+    @Test("tolerance PCM vs Nuked (block-SIMD float DSP)", arguments: [
         "sine_note_49716", "waveforms_49716", "fourop_49716", "rhythm_49716", "resample_44100",
     ])
     func goldenTolerance(_ name: String) {
@@ -174,17 +176,14 @@ struct OPL3GoldenTests {
         let rms = n > 0 ? (sumSqErr / Double(n)).squareRoot() : 0
         let rmsPct = rms / 32768.0 * 100.0
         let peakPct = maxErr / 32768.0 * 100.0
-        print(String(format: "  float-DSP vs Nuked  %@: RMS %.3f%%  peak %.3f%%  (RMS %.1f, peak %.0f LSB)",
+        print(String(format: "  block-simd vs Nuked  %@: RMS %.3f%%  peak %.3f%%  (RMS %.1f, peak %.0f LSB)",
                      name, rmsPct, peakPct, rms, maxErr))
 
-        // Per-fixture RMS ceiling, set just above the measured error as a
-        // regression guard. Note: the `fourop_49716` and `waveforms_49716`
-        // goldens are silent in the Nuked reference itself (peak 0), so those
-        // two cases compare silence to silence — the real accuracy evidence is
-        // sine_note (~0.13%), resample (~0.12%) and rhythm (~1.0%, noise-driven
-        // percussion that clips to full scale).
+        // Per-fixture RMS ceiling, set just above the measured error as a regression
+        // guard. Rhythm mixes the noise-driven percussion (clips to full scale), so
+        // it is held to a looser bound than the tonal patches (~0.13 %).
         let rmsCeilingPct = name == "rhythm_49716" ? 2.0 : 0.5
-        #expect(rmsPct < rmsCeilingPct, "\(name): float RMS error \(rmsPct)% exceeds \(rmsCeilingPct)%")
+        #expect(rmsPct < rmsCeilingPct, "\(name): block-SIMD RMS error \(rmsPct)% exceeds \(rmsCeilingPct)%")
     }
     #endif
 }

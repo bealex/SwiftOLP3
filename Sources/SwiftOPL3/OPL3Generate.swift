@@ -24,11 +24,14 @@
 extension OPL3Chip {
 
     // opl3.c:1111 OPL3_Generate4Ch
-    //
-    // Integer (faithful) build only. The OPL_FLOAT (OPL3FloatDSP.swift) and
-    // OPL_SIMD (OPL3SimdDSP.swift) forks provide their own `generate4Ch`; the
-    // resampler / write-buffer below are shared and unchanged.
-    #if !OPL_FLOAT && !OPL_SIMD
+    #if OPL_BLOCKSIMD
+    // Under the experimental block-SIMD float fork the per-sample integer core is
+    // replaced by the block engine (OPL3BlockSimd.swift); the resampler / write
+    // buffer below stay shared and call this exactly as before.
+    func generate4Ch() -> (Int16, Int16, Int16, Int16) {
+        blockEngine.generateNative()
+    }
+    #else
     func generate4Ch() -> (Int16, Int16, Int16, Int16) {
         let buf1 = clipSample(mixbuff.1)
         let buf3 = clipSample(mixbuff.3)
@@ -139,7 +142,7 @@ extension OPL3Chip {
         writebufSamplecnt = writebufSamplecnt &+ 1
         return (buf0, buf1, buf2, buf3)
     }
-    #endif  // !OPL_FLOAT && !OPL_SIMD (generate4Ch)
+    #endif  // OPL_BLOCKSIMD (generate4Ch delegate)
 
     // opl3.c:1263 OPL3_Generate4ChResampled
     func generate4ChResampled() -> (Int16, Int16, Int16, Int16) {

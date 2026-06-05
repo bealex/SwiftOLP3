@@ -52,13 +52,11 @@ func keyOnNote(_ chip: OPL3Chip) {
     chip.write(0xB0, 0x31)
 }
 
-// Which DSP the SwiftOPL3 module was compiled with (see OPL3FloatDSP.swift). The
-// flag must be passed to *both* the library and this target, e.g.
-// `swift build -c release -Xswiftc -DOPL_FLOAT`.
-#if OPL_SIMD
-let dspKind = "simd-float32"
-#elseif OPL_FLOAT
-let dspKind = "float32"
+// Which DSP the SwiftOPL3 module was compiled with. A build flag must be passed
+// to *both* the library and this target, e.g.
+// `swift build -c release -Xswiftc -DOPL_BLOCKSIMD`.
+#if OPL_BLOCKSIMD
+let dspKind = "block-simd-float32"
 #else
 let dspKind = "int"
 #endif

@@ -37,18 +37,14 @@ let package = Package(
                 // Uncomment for a debug-traced build, or pass `-Xswiftc -DOPL_TRACE`:
                 // .define("OPL_TRACE", .when(configuration: .debug)),
 
-                // EXPERIMENTAL float-DSP fork (OPL3FloatDSP.swift). OFF by default —
-                // the integer build is the faithful, bit-exact one. Define OPL_FLOAT
-                // to swap per-sample synthesis to 32-bit float (non-bit-exact) for
-                // performance evaluation. Uncomment, or build with
-                // `-Xswiftc -DOPL_FLOAT`:
-                // .define("OPL_FLOAT"),
-
-                // EXPERIMENTAL SIMD fork (OPL3SimdDSP.swift): a Struct-of-Arrays
-                // chip that processes melodic channels as SIMD lanes (rhythm stays
-                // scalar). Also float, also non-bit-exact. Mutually exclusive with
-                // OPL_FLOAT. Build with `-Xswiftc -DOPL_SIMD`:
-                // .define("OPL_SIMD"),
+                // EXPERIMENTAL block-SIMD float fork (OPL3BlockSimd.swift). OFF by
+                // default — the integer build is the faithful, bit-exact one. This
+                // is a clean-room, DBOPL-architecture-inspired (NOT a port of
+                // DOSBox's GPL dbopl.cpp) block generator: state-dispatched handlers
+                // + SIMD over the time axis + a polynomial sine, in 32-bit float
+                // (non-bit-exact). For performance evaluation only. Uncomment, or
+                // build with `-Xswiftc -DOPL_BLOCKSIMD`:
+                // .define("OPL_BLOCKSIMD"),
             ]
         ),
         .target(

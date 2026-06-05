@@ -51,13 +51,7 @@ public final class OPL3Chip {
     var tremolopos: UInt8 = 0
     var tremoloshift: UInt8 = 0
     var noise: UInt32 = 0
-    // Mix accumulators. Int32 in the faithful build; Float under the experimental
-    // float forks OPL_FLOAT (OPL3FloatDSP.swift) and OPL_SIMD (OPL3SimdDSP.swift).
-    #if OPL_FLOAT || OPL_SIMD
-    var mixbuff: (Float, Float, Float, Float) = (0, 0, 0, 0)
-    #else
     var mixbuff: (Int32, Int32, Int32, Int32) = (0, 0, 0, 0)
-    #endif
     var rmHHBit2: UInt8 = 0
     var rmHHBit3: UInt8 = 0
     var rmHHBit7: UInt8 = 0
@@ -81,14 +75,11 @@ public final class OPL3Chip {
     // path too. Owned for the chip's lifetime; `WriteBuf` is a trivial value type.
     let writebuf: UnsafeMutableBufferPointer<WriteBuf>
 
-    #if OPL_SIMD
-    // EXPERIMENTAL Struct-of-Arrays hot-loop mirror (OPL3SimdDSP.swift). Config is
-    // synced from the AoS state above when `simdDirty`; dynamic state is seeded
-    // from it once after reset (`simdNeedsSeed`). Default-initialised so it exists
-    // before `reset` runs from `init`.
-    let simd = OPL3SimdState()
-    var simdDirty = true
-    var simdNeedsSeed = true
+    #if OPL_BLOCKSIMD
+    // EXPERIMENTAL block-SIMD float engine (OPL3BlockSimd.swift). Reads config
+    // straight from the AoS `slot`/`channel` buffers each block and keeps its own
+    // float dynamic state; `generate4Ch()` delegates to it under the flag.
+    var blockEngine: OPL3BlockEngine!
     #endif
 
     /// ≈ `OPL3_Reset(&chip, samplerate)`.
@@ -100,6 +91,9 @@ public final class OPL3Chip {
         writebuf = UnsafeMutableBufferPointer<WriteBuf>.allocate(capacity: OPL3Const.writeBufSize)
         writebuf.initialize(repeating: WriteBuf())
         self.sampleRate = sampleRate
+        #if OPL_BLOCKSIMD
+        blockEngine = OPL3BlockEngine(self)
+        #endif
         reset(sampleRate: sampleRate)
     }
 
@@ -208,10 +202,9 @@ public final class OPL3Chip {
         tremoloshift = 4
         vibshift = 1
 
-        #if OPL_SIMD
-        // The AoS state above is the seed for the SoA mirror; (re)seed lazily.
-        simdNeedsSeed = true
-        simdDirty = true
+        #if OPL_BLOCKSIMD
+        // The AoS state above is the seed for the engine's float state.
+        blockEngine?.reseed()
         #endif
     }
 
@@ -296,18 +289,12 @@ public final class OPL3Chip {
     public func write(_ reg: UInt16, _ value: UInt8) {
         OPLLog.reg(reg, value)
         writeReg(reg, value)
-        #if OPL_SIMD
-        simdDirty = true
-        #endif
     }
 
     /// ≈ `OPL3_WriteRegBuffered` (timed write queue).
     public func writeBuffered(_ reg: UInt16, _ value: UInt8) {
         OPLLog.reg(reg, value)
         writeRegBuffered(reg, value)
-        #if OPL_SIMD
-        simdDirty = true
-        #endif
     }
 
     /// ≈ `OPL3_Generate` — one native-rate stereo sample (buf[0], buf[1]).
