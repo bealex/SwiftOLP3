@@ -5,6 +5,7 @@
 
 import Foundation
 import Testing
+
 @testable import SwiftOPL3
 
 // Chip golden — bit-exact PCM equality vs Nuked-OPL3. The reference C
@@ -20,7 +21,6 @@ import Testing
 
 @Suite("OPL3 chip golden — bit-exact PCM vs Nuked-OPL3")
 struct OPL3GoldenTests {
-
     private static func w(_ chip: OPL3Chip, _ reg: UInt16, _ v: UInt8) { chip.write(reg, v) }
 
     // setup_sine
@@ -104,7 +104,7 @@ struct OPL3GoldenTests {
                         let s = chip.generate(); out.append(s.left); out.append(s.right)
                     }
                 }
-            default:    // sine_note_49716
+            default:  // sine_note_49716
                 let chip = OPL3Chip(sampleRate: 49_716)
                 setupSine(chip)
                 for _ in 0 ..< 4_096 {
@@ -115,9 +115,13 @@ struct OPL3GoldenTests {
     }
 
     private static func golden(_ name: String) -> [Int16]? {
-        let url = Bundle.module.url(forResource: name, withExtension: "pcm", subdirectory: "Fixtures")
+        let url =
+            Bundle.module.url(forResource: name, withExtension: "pcm", subdirectory: "Fixtures")
             ?? Bundle.module.url(forResource: name, withExtension: "pcm")
-        guard let url, let data = try? Data(contentsOf: url) else {
+        guard
+            let url,
+            let data = try? Data(contentsOf: url)
+        else {
             return nil
         }
 
@@ -125,65 +129,83 @@ struct OPL3GoldenTests {
     }
 
     #if !OPL_BLOCKSIMD
-    @Test("bit-exact PCM vs Nuked", arguments: [
-        "sine_note_49716", "waveforms_49716", "fourop_49716", "rhythm_49716", "resample_44100",
-    ])
-    func golden(_ name: String) {
-        guard let golden = Self.golden(name) else {
-            return  // fixture not generated on this checkout — skip
-        }
+        @Test(
+            "bit-exact PCM vs Nuked",
+            arguments: [
+                "sine_note_49716", "waveforms_49716", "fourop_49716", "rhythm_49716", "resample_44100",
+            ]
+        )
+        func golden(_ name: String) {
+            guard
+                let golden = Self.golden(name)
+            else {
+                return  // fixture not generated on this checkout — skip
+            }
 
-        let rendered = Self.render(name)
-        #expect(rendered.count == golden.count)
+            let rendered = Self.render(name)
+            #expect(rendered.count == golden.count)
 
-        var firstMismatch = -1
-        for i in 0 ..< min(rendered.count, golden.count) where rendered[i] != golden[i] {
-            firstMismatch = i
-            break
+            var firstMismatch = -1
+            for i in 0 ..< min(rendered.count, golden.count) where rendered[i] != golden[i] {
+                firstMismatch = i
+                break
+            }
+            #expect(firstMismatch == -1, "\(name): first PCM divergence at interleaved index \(firstMismatch)")
         }
-        #expect(firstMismatch == -1, "\(name): first PCM divergence at interleaved index \(firstMismatch)")
-    }
     #else
-    // Block-SIMD float fork (OPL3BlockSimd.swift): the output is an *idealized*,
-    // non-bit-exact reimplementation, so it is validated against the same Nuked
-    // goldens by tolerance, not equality. We report RMS and peak error as a
-    // percentage of full scale (32768) and assert the RMS stays small.
-    //
-    // Rhythm percussion IS modelled (the noise LFSR is advanced 36×/sample with
-    // the rmHH/rmTC bit coupling, and the channel-sample-delay quirk is honoured),
-    // so it tracks Nuked to ~1 % like the tonal patches — the noise-driven drums
-    // just clip to full scale, so a slightly looser ceiling. `fourop`/`waveforms`
-    // are silent in the Nuked reference itself (vacuous).
-    @Test("tolerance PCM vs Nuked (block-SIMD float DSP)", arguments: [
-        "sine_note_49716", "waveforms_49716", "fourop_49716", "rhythm_49716", "resample_44100",
-    ])
-    func goldenTolerance(_ name: String) {
-        guard let golden = Self.golden(name) else {
-            return  // fixture not generated on this checkout — skip
+        // Block-SIMD float fork (OPL3BlockSimd.swift): the output is an *idealized*,
+        // non-bit-exact reimplementation, so it is validated against the same Nuked
+        // goldens by tolerance, not equality. We report RMS and peak error as a
+        // percentage of full scale (32768) and assert the RMS stays small.
+        //
+        // Rhythm percussion IS modelled (the noise LFSR is advanced 36×/sample with
+        // the rmHH/rmTC bit coupling, and the channel-sample-delay quirk is honoured),
+        // so it tracks Nuked to ~1 % like the tonal patches — the noise-driven drums
+        // just clip to full scale, so a slightly looser ceiling. `fourop`/`waveforms`
+        // are silent in the Nuked reference itself (vacuous).
+        @Test(
+            "tolerance PCM vs Nuked (block-SIMD float DSP)",
+            arguments: [
+                "sine_note_49716", "waveforms_49716", "fourop_49716", "rhythm_49716", "resample_44100",
+            ]
+        )
+        func goldenTolerance(_ name: String) {
+            guard
+                let golden = Self.golden(name)
+            else {
+                return  // fixture not generated on this checkout — skip
+            }
+
+            let rendered = Self.render(name)
+            #expect(rendered.count == golden.count)
+
+            let n = min(rendered.count, golden.count)
+            var sumSqErr = 0.0
+            var maxErr = 0.0
+            for i in 0 ..< n {
+                let e = Double(rendered[i]) - Double(golden[i])
+                sumSqErr += e * e
+                maxErr = max(maxErr, abs(e))
+            }
+            let rms = n > 0 ? (sumSqErr / Double(n)).squareRoot() : 0
+            let rmsPct = rms / 32768.0 * 100.0
+            let peakPct = maxErr / 32768.0 * 100.0
+            print(
+                String(
+                    format: "  block-simd vs Nuked  %@: RMS %.3f%%  peak %.3f%%  (RMS %.1f, peak %.0f LSB)",
+                    name,
+                    rmsPct,
+                    peakPct,
+                    rms,
+                    maxErr
+                )
+            )
+
+            // Per-fixture RMS ceiling, set just above the measured error as a regression
+            // guard. Rhythm mixes the noise-driven percussion (clips to full scale), so
+            // it is held to a looser bound than the tonal patches (~0.13 %).
+            let rmsCeilingPct = name == "rhythm_49716" ? 2.0 : 0.5
+            #expect(rmsPct < rmsCeilingPct, "\(name): block-SIMD RMS error \(rmsPct)% exceeds \(rmsCeilingPct)%")
         }
-
-        let rendered = Self.render(name)
-        #expect(rendered.count == golden.count)
-
-        let n = min(rendered.count, golden.count)
-        var sumSqErr = 0.0
-        var maxErr = 0.0
-        for i in 0 ..< n {
-            let e = Double(rendered[i]) - Double(golden[i])
-            sumSqErr += e * e
-            maxErr = max(maxErr, abs(e))
-        }
-        let rms = n > 0 ? (sumSqErr / Double(n)).squareRoot() : 0
-        let rmsPct = rms / 32768.0 * 100.0
-        let peakPct = maxErr / 32768.0 * 100.0
-        print(String(format: "  block-simd vs Nuked  %@: RMS %.3f%%  peak %.3f%%  (RMS %.1f, peak %.0f LSB)",
-                     name, rmsPct, peakPct, rms, maxErr))
-
-        // Per-fixture RMS ceiling, set just above the measured error as a regression
-        // guard. Rhythm mixes the noise-driven percussion (clips to full scale), so
-        // it is held to a looser bound than the tonal patches (~0.13 %).
-        let rmsCeilingPct = name == "rhythm_49716" ? 2.0 : 0.5
-        #expect(rmsPct < rmsCeilingPct, "\(name): block-SIMD RMS error \(rmsPct)% exceeds \(rmsCeilingPct)%")
-    }
     #endif
 }

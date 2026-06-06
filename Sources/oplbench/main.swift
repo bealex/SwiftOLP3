@@ -56,32 +56,46 @@ func keyOnNote(_ chip: OPL3Chip) {
 // to *both* the library and this target, e.g.
 // `swift build -c release -Xswiftc -DOPL_BLOCKSIMD`.
 #if OPL_BLOCKSIMD
-let dspKind = "block-simd-float32"
+    let dspKind = "block-simd-float32"
 #else
-let dspKind = "int"
+    let dspKind = "int"
 #endif
 
 func report(_ label: String, _ audioSeconds: Double, _ elapsed: Double, _ checksum: Int64) {
     let rt = elapsed > 0 ? audioSeconds / elapsed : 0
-    let line = String(format: "%@ [%@ DSP]: %.1fs audio in %.3fs  (%.0fx real-time)  [checksum %d]",
-                      label, dspKind, audioSeconds, elapsed, rt, checksum)
+    let line = String(
+        format: "%@ [%@ DSP]: %.1fs audio in %.3fs  (%.0fx real-time)  [checksum %d]",
+        label,
+        dspKind,
+        audioSeconds,
+        elapsed,
+        rt,
+        checksum
+    )
     print(line)
 }
 
 switch mode {
     case "render":
-        guard args.count > 3, let data = try? Data(contentsOf: URL(fileURLWithPath: args[3])) else {
+        guard
+            args.count > 3,
+            let data = try? Data(contentsOf: URL(fileURLWithPath: args[3]))
+        else {
             FileHandle.standardError.write(Data("render mode needs a readable .ADL path\n".utf8))
             exit(2)
         }
+
         let subsong = args.count > 4 ? (Int(args[4]) ?? 2) : 2
         let sampleRate = 44_100
         let chip = OPL3Chip(sampleRate: UInt32(sampleRate))
         let player = ADLPlayer(chip: chip)
-        guard player.load(data) else {
+        guard
+            player.load(data)
+        else {
             FileHandle.standardError.write(Data("not a valid .ADL\n".utf8))
             exit(1)
         }
+
         player.rewind(subsong: subsong)
 
         let totalTicks = Int(seconds * player.refreshRate)
@@ -106,17 +120,24 @@ switch mode {
         // warmed up. Re-rewind at end-of-track so the note/program-setup path
         // (initChannel, startSound, the opcode stream) keeps running for the whole
         // measured window rather than going idle.
-        guard args.count > 3, let data = try? Data(contentsOf: URL(fileURLWithPath: args[3])) else {
+        guard
+            args.count > 3,
+            let data = try? Data(contentsOf: URL(fileURLWithPath: args[3]))
+        else {
             FileHandle.standardError.write(Data("driver mode needs a readable .ADL path\n".utf8))
             exit(2)
         }
+
         let subsong = args.count > 4 ? (Int(args[4]) ?? 2) : 2
         let chip = OPL3Chip(sampleRate: OPL3Chip.nativeSampleRate)
         let player = ADLPlayer(chip: chip)
-        guard player.load(data) else {
+        guard
+            player.load(data)
+        else {
             FileHandle.standardError.write(Data("not a valid .ADL\n".utf8))
             exit(1)
         }
+
         player.rewind(subsong: subsong)
 
         let totalTicks = Int(seconds * player.refreshRate)
@@ -131,7 +152,7 @@ switch mode {
         }
         report("driver", seconds, -t.timeIntervalSinceNow, checksum)
 
-    default:    // chip
+    default:  // chip
         let chip = OPL3Chip(sampleRate: OPL3Chip.nativeSampleRate)
         keyOnNote(chip)
         let total = Int(seconds * Double(OPL3Chip.nativeSampleRate))

@@ -4,8 +4,9 @@
 //
 
 import Foundation
-import Testing
 import SwiftOPL3
+import Testing
+
 @testable import WestwoodADL
 
 // End-to-end: a synthetic full .ADL (track table + soundData) → ADLPlayer →
@@ -15,7 +16,6 @@ import SwiftOPL3
 
 @Suite("ADLPlayer — end-to-end driver → chip → PCM")
 struct ADLPlayerTests {
-
     private static func setLE16(_ a: inout [UInt8], _ i: Int, _ v: Int) {
         a[i] = UInt8(v & 0xFF)
         a[i + 1] = UInt8((v >> 8) & 0xFF)
@@ -25,18 +25,18 @@ struct ADLPlayerTests {
     /// instrument and plays a keyed note. soundData index = fileOffset - 120.
     private static func makeFullADL() -> Data {
         var f = [UInt8](repeating: 0, count: 120 + 1200)
-        f[0] = 2                                  // subsong 0 → program id 2
+        f[0] = 2  // subsong 0 → program id 2
         for i in 1 ..< 120 { f[i] = 0xFF }
         let base = 120
-        setLE16(&f, base + 2 * 2, 1000)           // program 2 → soundData offset 1000
-        setLE16(&f, base + 500 + 2 * 0, 1020)     // instrument 0 (program 250) → 1020
+        setLE16(&f, base + 2 * 2, 1000)  // program 2 → soundData offset 1000
+        setLE16(&f, base + 500 + 2 * 0, 1020)  // instrument 0 (program 250) → 1020
 
         var p = base + 1000
-        f[p] = 0; p += 1                          // channel 0
-        f[p] = 16; p += 1                         // priority
+        f[p] = 0; p += 1  // channel 0
+        f[p] = 16; p += 1  // priority
         f[p] = 0x90; p += 1; f[p] = 0x00; p += 1  // setupInstrument 0
         f[p] = 0x20; p += 1; f[p] = 0x20; p += 1  // inline note 0x20, duration 0x20 (key-on)
-        f[p] = 0x88                               // stopChannel
+        f[p] = 0x88  // stopChannel
 
         let instr: [UInt8] = [ 0x01, 0x01, 0x00, 0x00, 0x00, 0x10, 0x00, 0xF0, 0xF0, 0x00, 0x00 ]
         for (i, b) in instr.enumerated() { f[base + 1020 + i] = b }
@@ -76,7 +76,9 @@ struct ADLPlayerTests {
         let url = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Resources/Music/DUNE8.ADL")
-        guard let data = try? Data(contentsOf: url) else {
+        guard
+            let data = try? Data(contentsOf: url)
+        else {
             return  // game asset absent — skip
         }
 
@@ -86,7 +88,7 @@ struct ADLPlayerTests {
         player.rewind(subsong: 2)
 
         var peak: Int32 = 0
-        for _ in 0 ..< (72 * 5) {   // ~5 seconds at 72 Hz
+        for _ in 0 ..< (72 * 5) {  // ~5 seconds at 72 Hz
             _ = player.update()
             for _ in 0 ..< 612 {
                 peak = max(peak, abs(Int32(chip.generateResampled().left)))
@@ -110,6 +112,7 @@ struct ADLPlayerTests {
             }
             return out
         }
+
         #expect(render() == render())
     }
 }

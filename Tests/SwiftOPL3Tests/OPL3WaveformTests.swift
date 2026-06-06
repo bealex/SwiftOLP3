@@ -4,6 +4,7 @@
 //
 
 import Testing
+
 @testable import SwiftOPL3
 
 // Waveform / exp-converter parity. Anchor values are hand-derived directly from
@@ -12,7 +13,6 @@ import Testing
 
 @Suite("OPL3 waveforms — Nuked-OPL3 parity")
 struct OPL3WaveformTests {
-
     @Test("envelopeCalcExp anchor values")
     func envelopeCalcExp() {
         // exprom[0]=0x7fa=2042 → (2042<<1)>>0 = 4084.
@@ -23,7 +23,7 @@ struct OPL3WaveformTests {
         #expect(OPL3Waveforms.envelopeCalcExp(0xff) == 2048)
         // level clamps at 0x1fff → exprom[0xff]=1024, (2048)>>(0x1f=31) = 0.
         #expect(OPL3Waveforms.envelopeCalcExp(0x1fff) == 0)
-        #expect(OPL3Waveforms.envelopeCalcExp(0x4000) == 0)   // > 0x1fff also clamps
+        #expect(OPL3Waveforms.envelopeCalcExp(0x4000) == 0)  // > 0x1fff also clamps
     }
 
     @Test("sin0: peak + the 0x200 one's-complement negate")
@@ -40,7 +40,7 @@ struct OPL3WaveformTests {
     func sin6() {
         // phase<0x200 → envelopeCalcExp(env<<3); env=0 → 4084.
         #expect(OPL3Waveforms.envelopeCalcSin6(0, 0) == 4084)
-        #expect(OPL3Waveforms.envelopeCalcSin6(0x1ff, 0) == 4084)   // still in first half
+        #expect(OPL3Waveforms.envelopeCalcSin6(0x1ff, 0) == 4084)  // still in first half
         // phase>=0x200 → ~4084 = -4085.
         #expect(OPL3Waveforms.envelopeCalcSin6(0x200, 0) == -4085)
     }

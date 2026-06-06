@@ -16,7 +16,7 @@
 //  the `#if OPL_TRACE` `emit(...)` helper below — change it in exactly one place.
 
 #if OPL_TRACE
-import Memoirs
+    import Memoirs
 #endif
 
 /// Compile-time-gated trace seam. Logging is observation only: it must never
@@ -24,13 +24,12 @@ import Memoirs
 /// `@autoclosure` arguments. A faithful transcription produces identical output
 /// with `OPL_TRACE` on or off.
 public enum OPLLog {
-
     /// Every OPL register write — the driver↔chip seam and the parity stream the
     /// `WestwoodADLTests` trace goldens align against.
     @inline(__always)
     public static func reg(_ port: UInt16, _ value: UInt8) {
         #if OPL_TRACE
-        emit("reg", "port=\(hex(port)) val=\(hex(value))")
+            emit("reg", "port=\(hex(port)) val=\(hex(value))")
         #endif
     }
 
@@ -38,7 +37,7 @@ public enum OPLLog {
     @inline(__always)
     public static func op(_ channel: Int, _ opcode: UInt8, _ name: @autoclosure () -> String) {
         #if OPL_TRACE
-        emit("op", "ch=\(channel) op=\(hex(opcode)) \(name())")
+            emit("op", "ch=\(channel) op=\(hex(opcode)) \(name())")
         #endif
     }
 
@@ -46,25 +45,25 @@ public enum OPLLog {
     @inline(__always)
     public static func trace(_ tracer: StaticString, _ message: @autoclosure () -> String) {
         #if OPL_TRACE
-        emit("\(tracer)", message())
+            emit("\(tracer)", message())
         #endif
     }
 }
 
 #if OPL_TRACE
-extension OPLLog {
-    // Configured once; immutable ⇒ Sendable-safe under strict concurrency
-    // (no global mutable state, per the project's concurrency rules).
-    //
-    // TODO(setup): confirm the Memoirs constructor + log signature against the
-    // resolved Memoirs version and pick the desired Output.
-    private static let memoir = TracedMemoir(object: "OPL", memoir: PrintMemoir())
+    extension OPLLog {
+        // Configured once; immutable ⇒ Sendable-safe under strict concurrency
+        // (no global mutable state, per the project's concurrency rules).
+        //
+        // TODO(setup): confirm the Memoirs constructor + log signature against the
+        // resolved Memoirs version and pick the desired Output.
+        private static let memoir = TracedMemoir(object: "OPL", memoir: PrintMemoir())
 
-    static func emit(_ tracer: String, _ message: String) {
-        // TODO(setup): match the real Memoirs logging call.
-        memoir.debug("\(message)", tracers: [.label(tracer)])
+        static func emit(_ tracer: String, _ message: String) {
+            // TODO(setup): match the real Memoirs logging call.
+            memoir.debug("\(message)", tracers: [ .label(tracer) ])
+        }
+
+        static func hex<T: BinaryInteger>(_ v: T) -> String { "0x" + String(v, radix: 16) }
     }
-
-    static func hex<T: BinaryInteger>(_ v: T) -> String { "0x" + String(v, radix: 16) }
-}
 #endif

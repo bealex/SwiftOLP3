@@ -26,7 +26,7 @@ struct ADLData {
     let numsubsongs: Int
     let numPrograms: Int
     let soundData: [UInt8]
-    let trackEntries: [UInt8]   // 500 bytes (tail set to 0xFF for v<4)
+    let trackEntries: [UInt8]  // 500 bytes (tail set to 0xFF for v<4)
 
     @inline(__always)
     private static func readLE16(_ a: [UInt8], _ i: Int) -> Int {
@@ -36,7 +36,7 @@ struct ADLData {
     // adl.cpp:2767 CadlPlayer::load — version detection + soundData extraction.
     static func load(_ data: Data) -> ADLData? {
         let fileSize = data.count
-        if fileSize < 720 {   // minimum file size of v1
+        if fileSize < 720 {  // minimum file size of v1
             return nil
         }
 
@@ -49,13 +49,13 @@ struct ADLData {
         for i in stride(from: 0, to: 500, by: 2) {
             let w = readLE16(trackEntries, i)
             if w >= 500 && w < 0xFFFF {
-                version = 3   // actually 1, 2, or 3
+                version = 3  // actually 1, 2, or 3
                 ofs = 120
                 break
             }
         }
 
-        let soundData = Array(bytes[ofs ..< fileSize])   // soundDataSize == fileSize - ofs
+        let soundData = Array(bytes[ofs ..< fileSize])  // soundDataSize == fileSize - ofs
         // surplus: bytes [ofs, 500) of the file are actually soundData; the
         // remainder of trackEntries is cleared to 0xFF (matches the memset).
         for i in ofs ..< 500 {
@@ -64,19 +64,19 @@ struct ADLData {
 
         var numPrograms: Int
         if version < 4 {
-            numPrograms = 150   // for v1
+            numPrograms = 150  // for v1
             for i in stride(from: 0, to: numPrograms * 2, by: 2) {
                 let w = readLE16(soundData, i)
-                if w > 0 && w < 600 {       // minimum program/instrument offset for v1 is 600
-                    return nil               // bad_data
+                if w > 0 && w < 600 {  // minimum program/instrument offset for v1 is 600
+                    return nil  // bad_data
                 }
-                if w > 0 && w < 1000 {      // minimum offset for v2/v3 is 1000
+                if w > 0 && w < 1000 {  // minimum offset for v2/v3 is 1000
                     version = 1
                 }
             }
 
             if version > 1 {
-                if fileSize < 1120 {        // minimum size of v2/v3
+                if fileSize < 1120 {  // minimum size of v2/v3
                     return nil
                 }
                 numPrograms = 250
@@ -88,13 +88,13 @@ struct ADLData {
                 }
             }
         } else {
-            if fileSize < 2500 {            // minimum file size of v4
+            if fileSize < 2500 {  // minimum file size of v4
                 return nil
             }
             numPrograms = 500
             for i in stride(from: 0, to: numPrograms * 2, by: 2) {
                 let w = readLE16(soundData, i)
-                if w > 0 && w < 2000 {      // minimum program offset for v4 is 2000
+                if w > 0 && w < 2000 {  // minimum program offset for v4 is 2000
                     return nil
                 }
             }
@@ -135,7 +135,9 @@ struct ADLData {
 
     // adl.cpp:2664 CadlPlayer::play — subsong → program/sound id.
     func soundId(subsong track: Int) -> Int? {
-        guard track >= 0 && track < numsubsongs else {
+        guard
+            track >= 0 && track < numsubsongs
+        else {
             return nil
         }
 

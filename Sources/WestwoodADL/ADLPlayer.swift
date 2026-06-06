@@ -17,14 +17,15 @@ import SwiftOPL3
 /// Forwards the driver's `writeOPL` to an `OPL3Chip` (≈ AdPlug's `Copl`).
 final class ChipSink: OPLRegisterSink {
     let chip: OPL3Chip
+
     init(_ chip: OPL3Chip) { self.chip = chip }
+
     func writeRegister(_ reg: UInt8, _ value: UInt8) {
         chip.write(UInt16(reg), value)
     }
 }
 
 public final class ADLPlayer {
-
     private let chip: OPL3Chip
     private let sampleRate: UInt32
     private let sink: OPLRegisterSink
@@ -55,7 +56,9 @@ public final class ADLPlayer {
     /// rewinds to subsong 2 (AdPlug's default). Returns false on a bad file.
     @discardableResult
     public func load(_ data: Data) -> Bool {
-        guard let parsed = ADLData.load(data) else {
+        guard
+            let parsed = ADLData.load(data)
+        else {
             return false
         }
 
@@ -108,7 +111,10 @@ public final class ADLPlayer {
 
     // adl.cpp:2664 CadlPlayer::play
     private func play(_ track: UInt16, _ volume: UInt8) {
-        guard let adl, Int(track) < adl.numsubsongs else {
+        guard
+            let adl,
+            Int(track) < adl.numsubsongs
+        else {
             return
         }
 

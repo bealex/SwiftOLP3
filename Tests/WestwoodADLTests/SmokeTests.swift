@@ -3,8 +3,9 @@
 //  SPDX-License-Identifier: LGPL-2.1-or-later
 //
 
-import Testing
 import SwiftOPL3
+import Testing
+
 @testable import WestwoodADL
 
 // Skeleton smoke test — replaced/extended in Phase 3–4 by the ADL parse tests
@@ -16,7 +17,7 @@ struct ADLPlayerSmokeTests {
     @Test("player constructs over a chip")
     func construction() {
         let player = ADLPlayer(chip: OPL3Chip())
-        #expect(player.subsongCount == 0)        // stub; Phase 3 wires load()
-        #expect(player.update() == false)        // stub; Phase 4 transcribes update()
+        #expect(player.subsongCount == 0)  // stub; Phase 3 wires load()
+        #expect(player.update() == false)  // stub; Phase 4 transcribes update()
     }
 }

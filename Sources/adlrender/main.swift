@@ -21,9 +21,10 @@ func fail(_ message: String) -> Never {
 }
 
 let args = CommandLine.arguments
-guard args.count == 5,
-      let subsong = Int(args[2]),
-      let seconds = Double(args[3])
+guard
+    args.count == 5,
+    let subsong = Int(args[2]),
+    let seconds = Double(args[3])
 else {
     fail("usage: adlrender <file.adl> <subsong> <seconds> <out.wav>")
 }
@@ -32,19 +33,23 @@ let inPath = args[1]
 let outPath = args[4]
 let sampleRate: UInt32 = 44_100
 
-guard let data = try? Data(contentsOf: URL(fileURLWithPath: inPath)) else {
+guard
+    let data = try? Data(contentsOf: URL(fileURLWithPath: inPath))
+else {
     fail("cannot read \(inPath)")
 }
 
 let chip = OPL3Chip(sampleRate: sampleRate)
 let player = ADLPlayer(chip: chip)
-guard player.load(data) else {
+guard
+    player.load(data)
+else {
     fail("not a valid .ADL: \(inPath)")
 }
 
 player.rewind(subsong: subsong)
 
-let refresh = player.refreshRate                       // 72 Hz
+let refresh = player.refreshRate  // 72 Hz
 let totalTicks = Int((seconds * refresh).rounded())
 var samples: [Int16] = []
 samples.reserveCapacity(Int(seconds * Double(sampleRate)) * 2 + 4)
@@ -79,15 +84,17 @@ let blockAlign = channels * bitsPerSample / 8
 let dataBytes = samples.count * 2
 
 var wav = Data()
+
 func u32(_ v: Int) -> Data { var x = UInt32(v).littleEndian; return Data(bytes: &x, count: 4) }
+
 func u16(_ v: Int) -> Data { var x = UInt16(v).littleEndian; return Data(bytes: &x, count: 2) }
 
 wav.append(Data("RIFF".utf8))
 wav.append(u32(36 + dataBytes))
 wav.append(Data("WAVE".utf8))
 wav.append(Data("fmt ".utf8))
-wav.append(u32(16))                 // fmt chunk size
-wav.append(u16(1))                  // PCM
+wav.append(u32(16))  // fmt chunk size
+wav.append(u16(1))  // PCM
 wav.append(u16(channels))
 wav.append(u32(Int(sampleRate)))
 wav.append(u32(byteRate))
@@ -106,5 +113,7 @@ do {
 }
 
 let frames = samples.count / 2
-print("wrote \(outPath): \(frames) frames (\(String(format: "%.1f", Double(frames) / Double(sampleRate)))s) "
-    + "peak=\(peak) rms=\(String(format: "%.0f", rms))")
+print(
+    "wrote \(outPath): \(frames) frames (\(String(format: "%.1f", Double(frames) / Double(sampleRate)))s) "
+        + "peak=\(peak) rms=\(String(format: "%.0f", rms))"
+)

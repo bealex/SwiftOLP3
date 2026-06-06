@@ -15,7 +15,6 @@
 /// The constant tables Nuked-OPL3 declares at file scope in `opl3.c`. Caseless
 /// enum used purely as a namespace; everything is `internal` to the chip.
 enum OPL3Tables {
-
     // Nuked-OPL3 opl3.c:75 logsinrom[256] — log-sine quarter wave.
     static let logsinrom: [UInt16] = [
         0x859, 0x6c3, 0x607, 0x58b, 0x52e, 0x4e4, 0x4a6, 0x471,

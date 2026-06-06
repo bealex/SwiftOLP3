@@ -5,6 +5,7 @@
 
 import Foundation
 import Testing
+
 @testable import WestwoodADL
 
 // Driver golden — register-write trace equivalence vs AdPlug. The instrumented
@@ -17,6 +18,7 @@ import Testing
 
 private final class RecordingSink: OPLRegisterSink {
     var writes: [(UInt8, UInt8)] = []
+
     func writeRegister(_ reg: UInt8, _ value: UInt8) {
         writes.append((reg, value))
     }
@@ -24,7 +26,6 @@ private final class RecordingSink: OPLRegisterSink {
 
 @Suite("AdLib driver golden — trace equivalence vs AdPlug")
 struct ADLTraceTests {
-
     private func fixture(_ name: String, _ ext: String) -> URL? {
         Bundle.module.url(forResource: name, withExtension: ext, subdirectory: "Fixtures")
             ?? Bundle.module.url(forResource: name, withExtension: ext)
@@ -45,10 +46,12 @@ struct ADLTraceTests {
         var golden: [(UInt8, UInt8)] = []
         for line in traceText.split(separator: "\n") {
             let parts = line.split(separator: " ")
-            guard parts.count == 2,
-                  let reg = UInt8(parts[0], radix: 16),
-                  let val = UInt8(parts[1], radix: 16)
+            guard
+                parts.count == 2,
+                let reg = UInt8(parts[0], radix: 16),
+                let val = UInt8(parts[1], radix: 16)
             else { continue }
+
             golden.append((reg, val))
         }
         #expect(golden.count > 0)

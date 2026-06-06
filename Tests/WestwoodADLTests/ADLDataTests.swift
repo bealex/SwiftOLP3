@@ -5,6 +5,7 @@
 
 import Foundation
 import Testing
+
 @testable import WestwoodADL
 
 // ADL parser parity — exercises ADLData.load (≈ CadlPlayer::load, adl.cpp:2767)
@@ -14,7 +15,6 @@ import Testing
 
 @Suite("ADL parser — AdPlug load() parity")
 struct ADLDataTests {
-
     private static func setLE16(_ a: inout [UInt8], _ i: Int, _ v: Int) {
         a[i] = UInt8(v & 0xFF)
         a[i + 1] = UInt8((v >> 8) & 0xFF)
@@ -29,8 +29,8 @@ struct ADLDataTests {
         f[1] = 8
         for i in 2 ..< 120 { f[i] = 0xFF }
         // Program offset table lives at soundData[0..500] == file[120..620].
-        Self.setLE16(&f, 120 + 2 * 5, 1000)    // program 5 → soundData offset 1000
-        Self.setLE16(&f, 120 + 2 * 8, 1010)    // program 8 → soundData offset 1010
+        Self.setLE16(&f, 120 + 2 * 5, 1000)  // program 5 → soundData offset 1000
+        Self.setLE16(&f, 120 + 2 * 8, 1010)  // program 8 → soundData offset 1010
         // Instrument offset table at soundData[500..1000]; instrument 0 = program 250.
         Self.setLE16(&f, 120 + 500 + 2 * 0, 1020)
         return Data(f)
@@ -39,18 +39,18 @@ struct ADLDataTests {
     @Test("v3 detection, subsong count, and offsets")
     func parseV3() throws {
         let adl = try #require(ADLData.load(Self.makeV3File()))
-        #expect(adl.version == 3)              // AdPlug reports v2 (Dune II) as v3
+        #expect(adl.version == 3)  // AdPlug reports v2 (Dune II) as v3
         #expect(adl.numPrograms == 250)
         #expect(adl.numsubsongs == 2)
         #expect(adl.soundData.count == 1200 - 120)
 
         #expect(adl.soundId(subsong: 0) == 5)
         #expect(adl.soundId(subsong: 1) == 8)
-        #expect(adl.soundId(subsong: 2) == nil)   // out of range
+        #expect(adl.soundId(subsong: 2) == nil)  // out of range
 
         #expect(adl.programOffset(5) == 1000)
         #expect(adl.programOffset(8) == 1010)
-        #expect(adl.programOffset(6) == nil)      // offset 0 → invalid
+        #expect(adl.programOffset(6) == nil)  // offset 0 → invalid
         #expect(adl.instrumentOffset(0) == 1020)
     }
 

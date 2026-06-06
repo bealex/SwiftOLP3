@@ -4,8 +4,9 @@
 //
 
 import Foundation
-import Testing
 import SwiftOPL3
+import Testing
+
 @testable import WestwoodADL
 
 // Real-track driver golden — trace equivalence vs AdPlug on an actual (audible)
@@ -20,17 +21,17 @@ import SwiftOPL3
 
 private final class Recorder: OPLRegisterSink {
     var writes: [(UInt8, UInt8)] = []
+
     func writeRegister(_ reg: UInt8, _ value: UInt8) { writes.append((reg, value)) }
 }
 
 @Suite("ADL song golden — trace equivalence vs AdPlug (real DUNE8.ADL)")
 struct ADLSongTraceTests {
-
     private func packageRoot() -> URL {
         URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()   // Tests/WestwoodADLTests
-            .deletingLastPathComponent()   // Tests
-            .deletingLastPathComponent()   // package root
+            .deletingLastPathComponent()  // Tests/WestwoodADLTests
+            .deletingLastPathComponent()  // Tests
+            .deletingLastPathComponent()  // package root
     }
 
     @Test("DUNE8.ADL subsong 2: ADLPlayer matches AdPlug's writeOPL stream over 600 ticks")
@@ -39,7 +40,8 @@ struct ADLSongTraceTests {
         let ticks = 600
 
         let adlURL = packageRoot().appendingPathComponent("Resources/Music/DUNE8.ADL")
-        let traceURL = Bundle.module.url(forResource: "DUNE8.2", withExtension: "trace", subdirectory: "Fixtures")
+        let traceURL =
+            Bundle.module.url(forResource: "DUNE8.2", withExtension: "trace", subdirectory: "Fixtures")
             ?? Bundle.module.url(forResource: "DUNE8.2", withExtension: "trace")
 
         guard
@@ -53,10 +55,12 @@ struct ADLSongTraceTests {
         var golden: [(UInt8, UInt8)] = []
         for line in traceText.split(separator: "\n") {
             let parts = line.split(separator: " ")
-            guard parts.count == 2,
-                  let reg = UInt8(parts[0], radix: 16),
-                  let val = UInt8(parts[1], radix: 16)
+            guard
+                parts.count == 2,
+                let reg = UInt8(parts[0], radix: 16),
+                let val = UInt8(parts[1], radix: 16)
             else { continue }
+
             golden.append((reg, val))
         }
         #expect(golden.count > 30)
@@ -64,15 +68,17 @@ struct ADLSongTraceTests {
         let recorder = Recorder()
         let chip = OPL3Chip()
         let player = ADLPlayer(chip: chip, sink: recorder)
-        #expect(player.load(songData))         // internal rewind(2)
-        recorder.writes.removeAll()            // capture from the explicit rewind onward
+        #expect(player.load(songData))  // internal rewind(2)
+        recorder.writes.removeAll()  // capture from the explicit rewind onward
         player.rewind(subsong: subsong)
         for _ in 0 ..< ticks {
             _ = player.update()
         }
 
-        #expect(recorder.writes.count == golden.count,
-                "write count \(recorder.writes.count) != golden \(golden.count)")
+        #expect(
+            recorder.writes.count == golden.count,
+            "write count \(recorder.writes.count) != golden \(golden.count)"
+        )
 
         var firstDivergence = -1
         for i in 0 ..< min(recorder.writes.count, golden.count)

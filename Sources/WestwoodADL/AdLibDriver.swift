@@ -27,7 +27,6 @@ public protocol OPLRegisterSink: AnyObject {
 }
 
 final class AdLibDriver {
-
     enum PrimaryEffectKind { case none, slide, vibrato }
     enum SecondaryEffectKind { case none, effect1 }
 
@@ -97,11 +96,11 @@ final class AdLibDriver {
         // is slot 3.
         @inline(__always)
         func dataptrAtStack(_ pos: Int) -> Int? {
-            switch pos {
-                case 0: return dataptrStack.0
-                case 1: return dataptrStack.1
-                case 2: return dataptrStack.2
-                default: return dataptrStack.3
+            return switch pos {
+                case 0: dataptrStack.0
+                case 1: dataptrStack.1
+                case 2: dataptrStack.2
+                default: dataptrStack.3
             }
         }
 
@@ -250,7 +249,9 @@ final class AdLibDriver {
     }
 
     func startSound(_ track: Int, _ volume: Int) {
-        guard let trackData = getProgram(track) else {
+        guard
+            let trackData = getProgram(track)
+        else {
             return
         }
 
@@ -258,7 +259,11 @@ final class AdLibDriver {
             return
         }
 
-        _programQueue[_programQueueEnd] = QueueEntry(data: trackData, id: UInt8(truncatingIfNeeded: track), volume: UInt8(truncatingIfNeeded: volume))
+        _programQueue[_programQueueEnd] = QueueEntry(
+            data: trackData,
+            id: UInt8(truncatingIfNeeded: track),
+            volume: UInt8(truncatingIfNeeded: volume)
+        )
         _programQueueEnd = (_programQueueEnd + 1) & 15
     }
 
@@ -309,7 +314,9 @@ final class AdLibDriver {
 
     // checkDataOffset (adl.cpp:272) — bounds-checked pointer arithmetic.
     func checkDataOffset(_ ptr: Int?, _ n: Int) -> Int? {
-        guard let offset = ptr else {
+        guard
+            let offset = ptr
+        else {
             return nil
         }
 
@@ -470,7 +477,9 @@ final class AdLibDriver {
         octave = clip(octave, 0, 7) << 2
 
         _channels[c].regAx = UInt8(truncatingIfNeeded: freq & 0xFF)
-        _channels[c].regBx = (_channels[c].regBx & 0x20) | UInt8(truncatingIfNeeded: octave) | UInt8(truncatingIfNeeded: (freq >> 8) & 0x03)
+        _channels[c].regBx =
+            (_channels[c].regBx & 0x20) | UInt8(truncatingIfNeeded: octave)
+            | UInt8(truncatingIfNeeded: (freq >> 8) & 0x03)
 
         writeOPL(0xA0 + UInt8(_curChannel), _channels[c].regAx)
         writeOPL(0xB0 + UInt8(_curChannel), _channels[c].regBx)
@@ -482,7 +491,9 @@ final class AdLibDriver {
         if _curChannel >= 9 {
             return
         }
-        guard var p = checkDataOffset(dataptr, 11) != nil ? dataptr : nil else {
+        guard
+            var p = checkDataOffset(dataptr, 11) != nil ? dataptr : nil
+        else {
             return
         }
 
@@ -688,7 +699,7 @@ final class AdLibDriver {
     }
 
     func setupPrograms() {
-        let entry = _programQueueStart   // index of the QueueEntry &entry
+        let entry = _programQueueStart  // index of the QueueEntry &entry
         var ptr = _programQueue[entry].data
 
         if _programQueueStart == _programQueueEnd && ptr == nil {
@@ -706,7 +717,9 @@ final class AdLibDriver {
         _programQueue[entry].data = nil
         _programQueueStart = (_programQueueStart + 1) & 15
 
-        guard checkDataOffset(ptr, 2) != nil else {
+        guard
+            checkDataOffset(ptr, 2) != nil
+        else {
             return
         }
 
@@ -776,7 +789,8 @@ final class AdLibDriver {
         if _syncJumpMask != 0 {
             _curChannel = 9
             while _curChannel >= 0 {
-                if (_syncJumpMask & (1 << _curChannel)) != 0 && _channels[_curChannel].dataptr != nil && !_channels[_curChannel].lock {
+                if (_syncJumpMask & (1 << _curChannel)) != 0 && _channels[_curChannel].dataptr != nil
+                        && !_channels[_curChannel].lock {
                     break
                 }
                 _curChannel -= 1
@@ -842,7 +856,9 @@ final class AdLibDriver {
                     let op = clip(Int(opcode & 0x7F), 0, AdLibDriver.parserOpcodeValues.count - 1)
                     let valuesCount = AdLibDriver.parserOpcodeValues[op]
 
-                    guard checkDataOffset(_channels[c].dataptr, valuesCount) != nil else {
+                    guard
+                        checkDataOffset(_channels[c].dataptr, valuesCount) != nil
+                    else {
                         result = update_stopChannel(c, 0)
                         break
                     }
@@ -851,7 +867,9 @@ final class AdLibDriver {
                     _channels[c].dataptr = valuesIdx + valuesCount
                     result = callParserOpcode(op, c, valuesIdx)
                 } else {
-                    guard checkDataOffset(_channels[c].dataptr, 1) != nil else {
+                    guard
+                        checkDataOffset(_channels[c].dataptr, 1) != nil
+                    else {
                         result = update_stopChannel(c, 0)
                         break
                     }

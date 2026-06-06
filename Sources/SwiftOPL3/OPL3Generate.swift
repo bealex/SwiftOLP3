@@ -22,126 +22,129 @@
 //  is a 36-bit counter wrapping at `0xfffffffff`.
 
 extension OPL3Chip {
-
     // opl3.c:1111 OPL3_Generate4Ch
     #if OPL_BLOCKSIMD
-    // Under the experimental block-SIMD float fork the per-sample integer core is
-    // replaced by the block engine (OPL3BlockSimd.swift); the resampler / write
-    // buffer below stay shared and call this exactly as before.
-    func generate4Ch() -> (Int16, Int16, Int16, Int16) {
-        blockEngine.generateNative()
-    }
+        // Under the experimental block-SIMD float fork the per-sample integer core is
+        // replaced by the block engine (OPL3BlockSimd.swift); the resampler / write
+        // buffer below stay shared and call this exactly as before.
+        func generate4Ch() -> (Int16, Int16, Int16, Int16) {
+            blockEngine.generateNative()
+        }
     #else
-    func generate4Ch() -> (Int16, Int16, Int16, Int16) {
-        let buf1 = clipSample(mixbuff.1)
-        let buf3 = clipSample(mixbuff.3)
+        func generate4Ch() -> (Int16, Int16, Int16, Int16) {
+            let buf1 = clipSample(mixbuff.1)
+            let buf3 = clipSample(mixbuff.3)
 
-        for ii in 0 ..< 15 {
-            processSlot(ii)
-        }
-
-        var mix0: Int32 = 0
-        var mix1: Int32 = 0
-        for ii in 0 ..< 18 {
-            let out = channel[ii].out
-            let accm = Int16(truncatingIfNeeded:
-                Int32(sample(at: out.0)) &+ Int32(sample(at: out.1))
-                &+ Int32(sample(at: out.2)) &+ Int32(sample(at: out.3)))
-            mix0 &+= Int32(Int16(truncatingIfNeeded: Int32(accm) & Int32(channel[ii].cha)))
-            mix1 &+= Int32(Int16(truncatingIfNeeded: Int32(accm) & Int32(channel[ii].chc)))
-        }
-
-        mixbuff.0 = mix0
-        mixbuff.2 = mix1
-
-        for ii in 15 ..< 18 {
-            processSlot(ii)
-        }
-
-        let buf0 = clipSample(mixbuff.0)
-        let buf2 = clipSample(mixbuff.2)
-
-        for ii in 18 ..< 33 {
-            processSlot(ii)
-        }
-
-        mix0 = 0
-        mix1 = 0
-        for ii in 0 ..< 18 {
-            let out = channel[ii].out
-            let accm = Int16(truncatingIfNeeded:
-                Int32(sample(at: out.0)) &+ Int32(sample(at: out.1))
-                &+ Int32(sample(at: out.2)) &+ Int32(sample(at: out.3)))
-            mix0 &+= Int32(Int16(truncatingIfNeeded: Int32(accm) & Int32(channel[ii].chb)))
-            mix1 &+= Int32(Int16(truncatingIfNeeded: Int32(accm) & Int32(channel[ii].chd)))
-        }
-
-        mixbuff.1 = mix0
-        mixbuff.3 = mix1
-
-        for ii in 33 ..< 36 {
-            processSlot(ii)
-        }
-
-        if (timer & 0x3f) == 0x3f {
-            tremolopos = (tremolopos &+ 1) % 210
-        }
-        if tremolopos < 105 {
-            tremolo = tremolopos >> tremoloshift
-        } else {
-            tremolo = (210 - tremolopos) >> tremoloshift
-        }
-
-        if (timer & 0x3ff) == 0x3ff {
-            vibpos = (vibpos &+ 1) & 7
-        }
-
-        timer = timer &+ 1
-
-        if egState != 0 {
-            var shift: UInt8 = 0
-            while shift < 13 && ((egTimer >> UInt64(shift)) & 1) == 0 {
-                shift += 1
+            for ii in 0 ..< 15 {
+                processSlot(ii)
             }
 
-            if shift > 12 {
-                egAdd = 0
+            var mix0: Int32 = 0
+            var mix1: Int32 = 0
+            for ii in 0 ..< 18 {
+                let out = channel[ii].out
+                let accm = Int16(
+                    truncatingIfNeeded:
+                        Int32(sample(at: out.0)) &+ Int32(sample(at: out.1))
+                        &+ Int32(sample(at: out.2)) &+ Int32(sample(at: out.3))
+                )
+                mix0 &+= Int32(Int16(truncatingIfNeeded: Int32(accm) & Int32(channel[ii].cha)))
+                mix1 &+= Int32(Int16(truncatingIfNeeded: Int32(accm) & Int32(channel[ii].chc)))
+            }
+
+            mixbuff.0 = mix0
+            mixbuff.2 = mix1
+
+            for ii in 15 ..< 18 {
+                processSlot(ii)
+            }
+
+            let buf0 = clipSample(mixbuff.0)
+            let buf2 = clipSample(mixbuff.2)
+
+            for ii in 18 ..< 33 {
+                processSlot(ii)
+            }
+
+            mix0 = 0
+            mix1 = 0
+            for ii in 0 ..< 18 {
+                let out = channel[ii].out
+                let accm = Int16(
+                    truncatingIfNeeded:
+                        Int32(sample(at: out.0)) &+ Int32(sample(at: out.1))
+                        &+ Int32(sample(at: out.2)) &+ Int32(sample(at: out.3))
+                )
+                mix0 &+= Int32(Int16(truncatingIfNeeded: Int32(accm) & Int32(channel[ii].chb)))
+                mix1 &+= Int32(Int16(truncatingIfNeeded: Int32(accm) & Int32(channel[ii].chd)))
+            }
+
+            mixbuff.1 = mix0
+            mixbuff.3 = mix1
+
+            for ii in 33 ..< 36 {
+                processSlot(ii)
+            }
+
+            if (timer & 0x3f) == 0x3f {
+                tremolopos = (tremolopos &+ 1) % 210
+            }
+            if tremolopos < 105 {
+                tremolo = tremolopos >> tremoloshift
             } else {
-                egAdd = shift &+ 1
+                tremolo = (210 - tremolopos) >> tremoloshift
             }
 
-            egTimerLo = UInt8(egTimer & 0x3)
+            if (timer & 0x3ff) == 0x3ff {
+                vibpos = (vibpos &+ 1) & 7
+            }
+
+            timer = timer &+ 1
+
+            if egState != 0 {
+                var shift: UInt8 = 0
+                while shift < 13 && ((egTimer >> UInt64(shift)) & 1) == 0 {
+                    shift += 1
+                }
+
+                if shift > 12 {
+                    egAdd = 0
+                } else {
+                    egAdd = shift &+ 1
+                }
+
+                egTimerLo = UInt8(egTimer & 0x3)
+            }
+
+            if egTimerrem != 0 || egState != 0 {
+                if egTimer == 0xf_ffff_ffff {
+                    egTimer = 0
+                    egTimerrem = 1
+                } else {
+                    egTimer = egTimer &+ 1
+                    egTimerrem = 0
+                }
+            }
+
+            egState ^= 1
+
+            while true {
+                let cur = Int(writebufCur)
+                if !(writebuf[cur].time <= writebufSamplecnt) {
+                    break
+                }
+                if writebuf[cur].reg & 0x200 == 0 {
+                    break
+                }
+
+                writebuf[cur].reg &= 0x1ff
+                writeReg(writebuf[cur].reg, writebuf[cur].data)
+                writebufCur = (writebufCur &+ 1) % UInt32(OPL3Const.writeBufSize)
+            }
+
+            writebufSamplecnt = writebufSamplecnt &+ 1
+            return (buf0, buf1, buf2, buf3)
         }
-
-        if egTimerrem != 0 || egState != 0 {
-            if egTimer == 0xf_ffff_ffff {
-                egTimer = 0
-                egTimerrem = 1
-            } else {
-                egTimer = egTimer &+ 1
-                egTimerrem = 0
-            }
-        }
-
-        egState ^= 1
-
-        while true {
-            let cur = Int(writebufCur)
-            if !(writebuf[cur].time <= writebufSamplecnt) {
-                break
-            }
-            if writebuf[cur].reg & 0x200 == 0 {
-                break
-            }
-
-            writebuf[cur].reg &= 0x1ff
-            writeReg(writebuf[cur].reg, writebuf[cur].data)
-            writebufCur = (writebufCur &+ 1) % UInt32(OPL3Const.writeBufSize)
-        }
-
-        writebufSamplecnt = writebufSamplecnt &+ 1
-        return (buf0, buf1, buf2, buf3)
-    }
     #endif  // OPL_BLOCKSIMD (generate4Ch delegate)
 
     // opl3.c:1263 OPL3_Generate4ChResampled

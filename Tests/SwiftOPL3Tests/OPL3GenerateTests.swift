@@ -4,6 +4,7 @@
 //
 
 import Testing
+
 @testable import SwiftOPL3
 
 // Top-level generate parity — behavioural checks on OPL3_Generate / Resampled /
@@ -13,21 +14,20 @@ import Testing
 
 @Suite("OPL3 generate — behaviour + determinism")
 struct OPL3GenerateTests {
-
     /// Sets up a simple sustained 2-op sine note on channel 0 (OPL2 mode) and
     /// keys it on.
     private func keyOnNote(_ chip: OPL3Chip) {
-        chip.write(0x20, 0x21)   // slot0: mult=1, EGT (sustained)
-        chip.write(0x23, 0x21)   // slot3 (carrier): mult=1, EGT
-        chip.write(0x40, 0x10)   // slot0 TL: light modulator level
-        chip.write(0x43, 0x00)   // slot3 TL: full carrier volume
-        chip.write(0x60, 0xF0)   // slot0 AR=15, DR=0
-        chip.write(0x63, 0xF0)   // slot3 AR=15, DR=0
-        chip.write(0x80, 0x00)   // slot0 SL=0, RR=0
-        chip.write(0x83, 0x00)   // slot3 SL=0, RR=0
-        chip.write(0xC0, 0x00)   // fb=0, con=0 (FM)
-        chip.write(0xA0, 0x98)   // f_num low
-        chip.write(0xB0, 0x31)   // f_num high=1, block=4, key-on
+        chip.write(0x20, 0x21)  // slot0: mult=1, EGT (sustained)
+        chip.write(0x23, 0x21)  // slot3 (carrier): mult=1, EGT
+        chip.write(0x40, 0x10)  // slot0 TL: light modulator level
+        chip.write(0x43, 0x00)  // slot3 TL: full carrier volume
+        chip.write(0x60, 0xF0)  // slot0 AR=15, DR=0
+        chip.write(0x63, 0xF0)  // slot3 AR=15, DR=0
+        chip.write(0x80, 0x00)  // slot0 SL=0, RR=0
+        chip.write(0x83, 0x00)  // slot3 SL=0, RR=0
+        chip.write(0xC0, 0x00)  // fb=0, con=0 (FM)
+        chip.write(0xA0, 0x98)  // f_num low
+        chip.write(0xB0, 0x31)  // f_num high=1, block=4, key-on
     }
 
     @Test("idle chip is exactly silent")

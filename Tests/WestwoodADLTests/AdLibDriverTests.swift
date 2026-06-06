@@ -4,6 +4,7 @@
 //
 
 import Testing
+
 @testable import WestwoodADL
 
 // AdLibDriver internals parity — the data tables and the PRNG. The full
@@ -11,14 +12,13 @@ import Testing
 
 @Suite("AdLibDriver — tables + PRNG parity")
 struct AdLibDriverTests {
-
     @Test("parser opcode value-counts table has 75 entries")
     func opcodeValues() {
         #expect(AdLibDriver.parserOpcodeValues.count == 75)
-        #expect(AdLibDriver.parserOpcodeValues[0] == 1)    // setRepeat
-        #expect(AdLibDriver.parserOpcodeValues[13] == 5)   // setupSecondaryEffect1
-        #expect(AdLibDriver.parserOpcodeValues[65] == 9)   // setupRhythmSection
-        #expect(AdLibDriver.parserOpcodeValues[74] == 0)   // stopChannel
+        #expect(AdLibDriver.parserOpcodeValues[0] == 1)  // setRepeat
+        #expect(AdLibDriver.parserOpcodeValues[13] == 5)  // setupSecondaryEffect1
+        #expect(AdLibDriver.parserOpcodeValues[65] == 9)  // setupRhythmSection
+        #expect(AdLibDriver.parserOpcodeValues[74] == 0)  // stopChannel
     }
 
     @Test("regOffset / freqTable")

@@ -4,6 +4,7 @@
 //
 
 import Testing
+
 @testable import SwiftOPL3
 
 // Envelope generator parity — exercises OPL3_EnvelopeCalc (opl3.c:387) directly,
@@ -13,14 +14,13 @@ import Testing
 
 @Suite("OPL3 envelope generator — Nuked-OPL3 parity")
 struct OPL3EnvelopeTests {
-
     @Test("eg_out = eg_rout + (tl<<2) + (ksl>>shift) + trem")
     func egOutSum() {
         let chip = OPL3Chip()
         let s = 0
         chip.slot[s].egRout = 0x1ff
         chip.slot[s].regTl = 0x10
-        chip.slot[s].regKsl = 3            // kslshift[3] = 0 → no shift
+        chip.slot[s].regKsl = 3  // kslshift[3] = 0 → no shift
         chip.slot[s].egKsl = 0x20
         chip.slot[s].trem = .zero
         chip.slot[s].key = 0
@@ -44,16 +44,16 @@ struct OPL3EnvelopeTests {
         chip.slot[s].egKsl = 0x40
         chip.slot[s].key = 0
         chip.slot[s].egGen = OPL3Const.envRelease
-        chip.slot[s].regKsl = 0            // shift 8 → 0x40>>8 = 0
+        chip.slot[s].regKsl = 0  // shift 8 → 0x40>>8 = 0
         chip.envelopeCalc(s)
         #expect(chip.slot[s].egOut == 0)
-        chip.slot[s].regKsl = 1            // shift 1 → 0x40>>1 = 0x20
+        chip.slot[s].regKsl = 1  // shift 1 → 0x40>>1 = 0x20
         chip.envelopeCalc(s)
         #expect(chip.slot[s].egOut == 0x20)
-        chip.slot[s].regKsl = 2            // shift 2 → 0x40>>2 = 0x10
+        chip.slot[s].regKsl = 2  // shift 2 → 0x40>>2 = 0x10
         chip.envelopeCalc(s)
         #expect(chip.slot[s].egOut == 0x10)
-        chip.slot[s].regKsl = 3            // shift 0 → 0x40
+        chip.slot[s].regKsl = 3  // shift 0 → 0x40
         chip.envelopeCalc(s)
         #expect(chip.slot[s].egOut == 0x40)
     }
@@ -93,7 +93,7 @@ struct OPL3EnvelopeTests {
         chip.slot[s].key = OPL3Const.egkNorm
         chip.slot[s].egGen = OPL3Const.envDecay
         chip.slot[s].regSl = 2
-        chip.slot[s].egRout = 0x20         // 0x20 >> 4 == 2
+        chip.slot[s].egRout = 0x20  // 0x20 >> 4 == 2
         chip.envelopeCalc(s)
         #expect(chip.slot[s].egGen == OPL3Const.envSustain)
     }

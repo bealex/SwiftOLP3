@@ -45,18 +45,18 @@ enum TremRef: Equatable {
 /// Per-operator state. ≈ `opl3_slot` (opl3.h:53).
 struct Slot {
     // Cross-references (Nuked pointers → indices).
-    var channel: Int = 0            // ≈ slot->channel (index into chip.channel)
-    var mod: SampleRef = .zero      // ≈ slot->mod   (int16_t*)
-    var trem: TremRef = .zero       // ≈ slot->trem  (uint8_t*)
+    var channel: Int = 0  // ≈ slot->channel (index into chip.channel)
+    var mod: SampleRef = .zero  // ≈ slot->mod   (int16_t*)
+    var trem: TremRef = .zero  // ≈ slot->trem  (uint8_t*)
 
     var out: OPLSample = 0
     var fbmod: OPLSample = 0
     var prout: OPLSample = 0
     var egRout: UInt16 = 0
     var egOut: UInt16 = 0
-    var egInc: UInt8 = 0            // vestigial in v1.8 (declared, unused) — kept for fidelity
+    var egInc: UInt8 = 0  // vestigial in v1.8 (declared, unused) — kept for fidelity
     var egGen: UInt8 = 0
-    var egRate: UInt8 = 0           // vestigial in v1.8 (declared, unused) — kept for fidelity
+    var egRate: UInt8 = 0  // vestigial in v1.8 (declared, unused) — kept for fidelity
     var egKsl: UInt8 = 0
     var regVib: UInt8 = 0
     var regType: UInt8 = 0
@@ -81,8 +81,8 @@ struct Channel {
     // Fixed tuples (not arrays) so `Channel` is a trivial value type with no
     // heap storage / ARC — the hot loop touches `channel[c]` millions of times
     // per second. ≈ channel->slotz[2] / channel->out[4].
-    var slotz: (Int, Int) = (0, 0)         // indices into chip.slot
-    var pair: Int = -1                     // ≈ channel->pair (index, -1 = NULL)
+    var slotz: (Int, Int) = (0, 0)  // indices into chip.slot
+    var pair: Int = -1  // ≈ channel->pair (index, -1 = NULL)
     var out: (SampleRef, SampleRef, SampleRef, SampleRef) = (.zero, .zero, .zero, .zero)
 
     var chtype: UInt8 = 0

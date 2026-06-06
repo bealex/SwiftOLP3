@@ -17,7 +17,6 @@
 //  `Int32` and truncate to `Int16` — matching the implicit C narrowing exactly.
 
 enum OPL3Waveforms {
-
     // opl3.c:211 OPL3_EnvelopeCalcExp
     static func envelopeCalcExp(_ level: UInt32) -> Int16 {
         var level = level

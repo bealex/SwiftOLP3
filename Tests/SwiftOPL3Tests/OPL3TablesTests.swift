@@ -4,6 +4,7 @@
 //
 
 import Testing
+
 @testable import SwiftOPL3
 
 // Table parity unit tests — assert each ported table's length and several spot
@@ -13,36 +14,35 @@ import Testing
 
 @Suite("OPL3 tables — Nuked-OPL3 parity")
 struct OPL3TablesTests {
-
     @Test("logsinrom: 256 entries, endpoints and interior spot values")
     func logsinrom() {
         let table = OPL3Tables.logsinrom
         #expect(table.count == 256)
-        #expect(table[0] == 0x859)            // opl3.c:76
-        #expect(table[7] == 0x471)            // opl3.c:76 (end of first row)
-        #expect(table[128] == 0x07f)          // opl3.c:92 (start of row 17)
-        #expect(table[255] == 0x000)          // opl3.c:107 (last entry)
+        #expect(table[0] == 0x859)  // opl3.c:76
+        #expect(table[7] == 0x471)  // opl3.c:76 (end of first row)
+        #expect(table[128] == 0x07f)  // opl3.c:92 (start of row 17)
+        #expect(table[255] == 0x000)  // opl3.c:107 (last entry)
     }
 
     @Test("exprom: 256 entries, endpoints and interior spot values")
     func exprom() {
         let table = OPL3Tables.exprom
         #expect(table.count == 256)
-        #expect(table[0] == 0x7fa)            // opl3.c:115
-        #expect(table[8] == 0x7cf)            // opl3.c:116 (start of row 2)
-        #expect(table[128] == 0x5a4)          // opl3.c:131 (start of row 17)
-        #expect(table[255] == 0x400)          // opl3.c:146 (last entry)
+        #expect(table[0] == 0x7fa)  // opl3.c:115
+        #expect(table[8] == 0x7cf)  // opl3.c:116 (start of row 2)
+        #expect(table[128] == 0x5a4)  // opl3.c:131 (start of row 17)
+        #expect(table[255] == 0x400)  // opl3.c:146 (last entry)
     }
 
     @Test("mt: 16 entries, ×2 frequency multipliers")
     func mt() {
         let table = OPL3Tables.mt
         #expect(table.count == 16)
-        #expect(table[0] == 1)                // 1/2 stored ×2
-        #expect(table[1] == 2)                // 1
-        #expect(table[10] == 20)              // 10
-        #expect(table[11] == 20)              // 10 (repeat, not 22)
-        #expect(table[14] == 30)              // 15
+        #expect(table[0] == 1)  // 1/2 stored ×2
+        #expect(table[1] == 2)  // 1
+        #expect(table[10] == 20)  // 10
+        #expect(table[11] == 20)  // 10 (repeat, not 22)
+        #expect(table[14] == 30)  // 15
         #expect(table[15] == 30)
     }
 
@@ -72,7 +72,7 @@ struct OPL3TablesTests {
         #expect(table.count == 0x20)
         #expect(table[0] == 0)
         #expect(table[5] == 5)
-        #expect(table[6] == -1)               // gap
+        #expect(table[6] == -1)  // gap
         #expect(table[8] == 6)
         #expect(table[21] == 17)
         #expect(table[22] == -1)

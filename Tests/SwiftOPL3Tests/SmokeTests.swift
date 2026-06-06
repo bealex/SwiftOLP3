@@ -4,6 +4,7 @@
 //
 
 import Testing
+
 @testable import SwiftOPL3
 
 // Smoke test — basic construction + the OPLLog.reg tap. Deep coverage lives in
@@ -16,7 +17,7 @@ struct OPL3ChipSmokeTests {
     func construction() {
         #expect(OPL3Chip.nativeSampleRate == 49_716)
         let chip = OPL3Chip()
-        chip.write(0x20, 0x01)            // exercises the OPLLog.reg tap; no key-on
+        chip.write(0x20, 0x01)  // exercises the OPLLog.reg tap; no key-on
         let (l, r) = chip.generate()
         // No note is keyed, so the chip is genuinely silent (not a stub).
         #expect(l == 0 && r == 0)

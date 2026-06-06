@@ -18,7 +18,6 @@
 import Foundation
 
 public final class OPL3Chip {
-
     /// Native OPL3 sample rate, 14318181 / 288.
     public static let nativeSampleRate: UInt32 = 49_716
 
@@ -76,10 +75,10 @@ public final class OPL3Chip {
     let writebuf: UnsafeMutableBufferPointer<WriteBuf>
 
     #if OPL_BLOCKSIMD
-    // EXPERIMENTAL block-SIMD float engine (OPL3BlockSimd.swift). Reads config
-    // straight from the AoS `slot`/`channel` buffers each block and keeps its own
-    // float dynamic state; `generate4Ch()` delegates to it under the flag.
-    var blockEngine: OPL3BlockEngine!
+        // EXPERIMENTAL block-SIMD float engine (OPL3BlockSimd.swift). Reads config
+        // straight from the AoS `slot`/`channel` buffers each block and keeps its own
+        // float dynamic state; `generate4Ch()` delegates to it under the flag.
+        var blockEngine: OPL3BlockEngine!
     #endif
 
     /// ≈ `OPL3_Reset(&chip, samplerate)`.
@@ -92,7 +91,7 @@ public final class OPL3Chip {
         writebuf.initialize(repeating: WriteBuf())
         self.sampleRate = sampleRate
         #if OPL_BLOCKSIMD
-        blockEngine = OPL3BlockEngine(self)
+            blockEngine = OPL3BlockEngine(self)
         #endif
         reset(sampleRate: sampleRate)
     }
@@ -109,10 +108,10 @@ public final class OPL3Chip {
     /// `*channel->out[k]`). `.zero` ≈ `*(&chip->zeromod)`.
     @inline(__always)
     func sample(at ref: SampleRef) -> OPLSample {
-        switch ref {
-            case .zero: return 0
-            case .slotOut(let i): return slot[i].out
-            case .slotFbmod(let i): return slot[i].fbmod
+        return switch ref {
+            case .zero: 0
+            case .slotOut(let i): slot[i].out
+            case .slotFbmod(let i): slot[i].fbmod
         }
     }
 
@@ -120,9 +119,9 @@ public final class OPL3Chip {
     /// `.zero` ≈ `*(uint8_t*)&chip->zeromod`, which reads 0.
     @inline(__always)
     func tremValue(_ ref: TremRef) -> UInt8 {
-        switch ref {
-            case .zero: return 0
-            case .tremolo: return tremolo
+        return switch ref {
+            case .zero: 0
+            case .tremolo: tremolo
         }
     }
 
@@ -189,7 +188,7 @@ public final class OPL3Chip {
                 channel[channum].pair = channum - 3
             }
 
-            channel[channum].out = ( .zero, .zero, .zero, .zero )
+            channel[channum].out = (.zero, .zero, .zero, .zero)
             channel[channum].chtype = OPL3Const.ch2op
             channel[channum].cha = 0xffff
             channel[channum].chb = 0xffff
@@ -203,8 +202,8 @@ public final class OPL3Chip {
         vibshift = 1
 
         #if OPL_BLOCKSIMD
-        // The AoS state above is the seed for the engine's float state.
-        blockEngine?.reseed()
+            // The AoS state above is the seed for the engine's float state.
+            blockEngine?.reseed()
         #endif
     }
 
@@ -227,7 +226,7 @@ public final class OPL3Chip {
                 case 0x00:
                     slot[s0].mod = .slotFbmod(s0)
                     slot[s1].mod = .slotOut(s0)
-                default:    // 0x01
+                default:  // 0x01
                     slot[s0].mod = .slotFbmod(s0)
                     slot[s1].mod = .zero
             }
@@ -242,43 +241,43 @@ public final class OPL3Chip {
             let p = channel[c].pair
             let ps0 = channel[p].slotz.0
             let ps1 = channel[p].slotz.1
-            channel[p].out = ( .zero, .zero, .zero, .zero )
+            channel[p].out = (.zero, .zero, .zero, .zero)
             switch channel[c].alg & 0x03 {
                 case 0x00:
                     slot[ps0].mod = .slotFbmod(ps0)
                     slot[ps1].mod = .slotOut(ps0)
                     slot[s0].mod = .slotOut(ps1)
                     slot[s1].mod = .slotOut(s0)
-                    channel[c].out = ( .slotOut(s1), .zero, .zero, .zero )
+                    channel[c].out = (.slotOut(s1), .zero, .zero, .zero)
                 case 0x01:
                     slot[ps0].mod = .slotFbmod(ps0)
                     slot[ps1].mod = .slotOut(ps0)
                     slot[s0].mod = .zero
                     slot[s1].mod = .slotOut(s0)
-                    channel[c].out = ( .slotOut(ps1), .slotOut(s1), .zero, .zero )
+                    channel[c].out = (.slotOut(ps1), .slotOut(s1), .zero, .zero)
                 case 0x02:
                     slot[ps0].mod = .slotFbmod(ps0)
                     slot[ps1].mod = .zero
                     slot[s0].mod = .slotOut(ps1)
                     slot[s1].mod = .slotOut(s0)
-                    channel[c].out = ( .slotOut(ps0), .slotOut(s1), .zero, .zero )
-                default:    // 0x03
+                    channel[c].out = (.slotOut(ps0), .slotOut(s1), .zero, .zero)
+                default:  // 0x03
                     slot[ps0].mod = .slotFbmod(ps0)
                     slot[ps1].mod = .zero
                     slot[s0].mod = .slotOut(ps1)
                     slot[s1].mod = .zero
-                    channel[c].out = ( .slotOut(ps0), .slotOut(s0), .slotOut(s1), .zero )
+                    channel[c].out = (.slotOut(ps0), .slotOut(s0), .slotOut(s1), .zero)
             }
         } else {
             switch channel[c].alg & 0x01 {
                 case 0x00:
                     slot[s0].mod = .slotFbmod(s0)
                     slot[s1].mod = .slotOut(s0)
-                    channel[c].out = ( .slotOut(s1), .zero, .zero, .zero )
-                default:    // 0x01
+                    channel[c].out = (.slotOut(s1), .zero, .zero, .zero)
+                default:  // 0x01
                     slot[s0].mod = .slotFbmod(s0)
                     slot[s1].mod = .zero
-                    channel[c].out = ( .slotOut(s0), .slotOut(s1), .zero, .zero )
+                    channel[c].out = (.slotOut(s0), .slotOut(s1), .zero, .zero)
             }
         }
     }

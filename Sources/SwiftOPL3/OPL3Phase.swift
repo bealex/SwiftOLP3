@@ -21,7 +21,6 @@
 //   • Feedback `(prout + out) >> (9 - fb)` is a signed arithmetic shift.
 
 extension OPL3Chip {
-
     // opl3.c:548 OPL3_PhaseGenerate
     func phaseGenerate(_ s: Int) {
         let c = slot[s].channel
@@ -67,9 +66,10 @@ extension OPL3Chip {
         }
 
         if rhy & 0x20 != 0 {
-            let rmXor = (rmHHBit2 ^ rmHHBit7)
-                      | (rmHHBit3 ^ rmTCBit5)
-                      | (rmTCBit3 ^ rmTCBit5)
+            let rmXor =
+                (rmHHBit2 ^ rmHHBit7)
+                | (rmHHBit3 ^ rmTCBit5)
+                | (rmTCBit3 ^ rmTCBit5)
             switch slot[s].slotNum {
                 case 13:  // hh
                     slot[s].pgPhaseOut = UInt16(rmXor) << 9
@@ -79,8 +79,9 @@ extension OPL3Chip {
                         slot[s].pgPhaseOut |= 0x34
                     }
                 case 16:  // sd
-                    slot[s].pgPhaseOut = UInt16(truncatingIfNeeded:
-                        (UInt32(rmHHBit8) << 9) | ((UInt32(rmHHBit8) ^ (noise & 1)) << 8))
+                    slot[s].pgPhaseOut = UInt16(
+                        truncatingIfNeeded: (UInt32(rmHHBit8) << 9) | ((UInt32(rmHHBit8) ^ (noise & 1)) << 8)
+                    )
                 case 17:  // tc
                     slot[s].pgPhaseOut = (UInt16(rmXor) << 9) | 0x80
                 default:

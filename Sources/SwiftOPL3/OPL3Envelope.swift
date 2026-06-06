@@ -19,7 +19,6 @@
 //     field, which the switch still reads in its original (pre-update) state.
 
 extension OPL3Chip {
-
     // opl3.c:387 OPL3_EnvelopeCalc
     func envelopeCalc(_ s: Int) {
         var regRate: UInt8 = 0
@@ -27,11 +26,13 @@ extension OPL3Chip {
 
         let tremVal = tremValue(slot[s].trem)
         let kslShiftAmount = OPL3Tables.kslshift[Int(slot[s].regKsl)]
-        slot[s].egOut = UInt16(truncatingIfNeeded:
-            UInt32(slot[s].egRout)
-            &+ (UInt32(slot[s].regTl) << 2)
-            &+ (UInt32(slot[s].egKsl) >> UInt32(kslShiftAmount))
-            &+ UInt32(tremVal))
+        slot[s].egOut = UInt16(
+            truncatingIfNeeded:
+                UInt32(slot[s].egRout)
+                &+ (UInt32(slot[s].regTl) << 2)
+                &+ (UInt32(slot[s].egKsl) >> UInt32(kslShiftAmount))
+                &+ UInt32(tremVal)
+        )
 
         if slot[s].key != 0 && slot[s].egGen == OPL3Const.envRelease {
             reset = 1

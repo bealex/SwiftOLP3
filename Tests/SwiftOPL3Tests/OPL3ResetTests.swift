@@ -4,6 +4,7 @@
 //
 
 import Testing
+
 @testable import SwiftOPL3
 
 // Reset wiring — asserts OPL3_Reset (opl3.c:1293) produces the same slot/channel
@@ -12,7 +13,6 @@ import Testing
 
 @Suite("OPL3 reset — Nuked-OPL3 parity")
 struct OPL3ResetTests {
-
     @Test("storage sizes")
     func sizes() {
         let chip = OPL3Chip()
@@ -37,10 +37,10 @@ struct OPL3ResetTests {
     func channelSlotMap() {
         let chip = OPL3Chip()
         // chSlot[0]=0 → slotz [0,3]; chSlot[3]=6 → [6,9]; chSlot[9]=18 → [18,21].
-        #expect(chip.channel[0].slotz == ( 0, 3 ))
-        #expect(chip.channel[3].slotz == ( 6, 9 ))
-        #expect(chip.channel[9].slotz == ( 18, 21 ))
-        #expect(chip.channel[17].slotz == ( 32, 35 ))
+        #expect(chip.channel[0].slotz == (0, 3))
+        #expect(chip.channel[3].slotz == (6, 9))
+        #expect(chip.channel[9].slotz == (18, 21))
+        #expect(chip.channel[17].slotz == (32, 35))
         // slot->channel back-reference.
         #expect(chip.slot[0].channel == 0)
         #expect(chip.slot[3].channel == 0)
@@ -66,7 +66,7 @@ struct OPL3ResetTests {
         // channel.out = [slot1.out, zero, zero, zero].
         #expect(chip.slot[0].mod == .slotFbmod(0))
         #expect(chip.slot[3].mod == .slotOut(0))
-        #expect(chip.channel[0].out == ( .slotOut(3), .zero, .zero, .zero ))
+        #expect(chip.channel[0].out == (.slotOut(3), .zero, .zero, .zero))
         #expect(chip.channel[0].chtype == OPL3Const.ch2op)
         #expect(chip.channel[0].cha == 0xffff)
         #expect(chip.channel[0].chb == 0xffff)
@@ -77,13 +77,13 @@ struct OPL3ResetTests {
     @Test("resampler + LFO constants")
     func resamplerConstants() {
         let native = OPL3Chip(sampleRate: 49_716)
-        #expect(native.rateratio == 1024)        // (49716<<10)/49716
+        #expect(native.rateratio == 1024)  // (49716<<10)/49716
         #expect(native.noise == 1)
         #expect(native.tremoloshift == 4)
         #expect(native.vibshift == 1)
 
         let cd = OPL3Chip(sampleRate: 44_100)
-        #expect(cd.rateratio == 908)             // (44100<<10)/49716 = 908
+        #expect(cd.rateratio == 908)  // (44100<<10)/49716 = 908
     }
 
     @Test("source resolution helpers")

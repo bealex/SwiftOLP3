@@ -14,7 +14,6 @@
 //  omitted exactly as the default C compile drops them.
 
 extension OPL3Chip {
-
     // opl3.c:376 OPL3_EnvelopeUpdateKSL
     func envelopeUpdateKSL(_ s: Int) {
         let c = slot[s].channel
@@ -85,8 +84,9 @@ extension OPL3Chip {
         }
 
         channel[c].fNum = (channel[c].fNum & 0x300) | UInt16(data)
-        channel[c].ksv = (channel[c].block << 1)
-                       | UInt8((channel[c].fNum >> (0x09 - UInt16(nts))) & 0x01)
+        channel[c].ksv =
+            (channel[c].block << 1)
+            | UInt8((channel[c].fNum >> (0x09 - UInt16(nts))) & 0x01)
         envelopeUpdateKSL(channel[c].slotz.0)
         envelopeUpdateKSL(channel[c].slotz.1)
         if newm != 0 && channel[c].chtype == OPL3Const.ch4op {
@@ -106,8 +106,9 @@ extension OPL3Chip {
 
         channel[c].fNum = (channel[c].fNum & 0xff) | (UInt16(data & 0x03) << 8)
         channel[c].block = (data >> 2) & 0x07
-        channel[c].ksv = (channel[c].block << 1)
-                       | UInt8((channel[c].fNum >> (0x09 - UInt16(nts))) & 0x01)
+        channel[c].ksv =
+            (channel[c].block << 1)
+            | UInt8((channel[c].fNum >> (0x09 - UInt16(nts))) & 0x01)
         envelopeUpdateKSL(channel[c].slotz.0)
         envelopeUpdateKSL(channel[c].slotz.1)
         if newm != 0 && channel[c].chtype == OPL3Const.ch4op {
@@ -225,7 +226,7 @@ extension OPL3Chip {
         rhy = data & 0x3f
         if rhy & 0x20 != 0 {
             let c6 = 6, c7 = 7, c8 = 8
-            channel[c6].out = ( .slotOut(channel[c6].slotz.1), .slotOut(channel[c6].slotz.1), .zero, .zero )
+            channel[c6].out = (.slotOut(channel[c6].slotz.1), .slotOut(channel[c6].slotz.1), .zero, .zero)
             channel[c7].out = (
                 .slotOut(channel[c7].slotz.0), .slotOut(channel[c7].slotz.0),
                 .slotOut(channel[c7].slotz.1), .slotOut(channel[c7].slotz.1)
